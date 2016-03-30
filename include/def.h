@@ -14,12 +14,9 @@
 #define CFG_VALUE_INVALID             (2005)
 
 #define PS_CONFIG_INVALID             (3001)
-#define PS_WAIT_SECS_INVALID          (3002)
-#define PS_PACKETS_INVALID            (3003)
-#define PS_GENERAL_FILE_INVALID       (3004)
-#define PS_TOTAL_CHANNELS_INVALID     (3005)
-#define PS_DEFAULT_CHANNEL_INVALID    (3006)
-#define PS_PERMISSION_DENIED          (3007)
+#define PS_CFG_ITEM_INVALID           (3002)
+#define PS_PERMISSION_DENIED          (3003)
+#define PS_UNSUPPORT_INPUTTYPE        (3004)
 
 #endif 
 
