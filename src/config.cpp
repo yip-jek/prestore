@@ -44,8 +44,14 @@ void Config::SetCfgFile(const std::string& cfg_file) throw(Exception)
 	m_cfgFile = cfg_file;
 }
 
-bool Config::RegisterItem(const std::string& segment, const std::string& name)
+bool Config::RegisterItem(std::string segment, std::string name)
 {
+	Helper::Trim(segment);
+	Helper::Upper(segment);
+
+	Helper::Trim(name);
+	Helper::Upper(name);
+
 	if ( FindItem(segment, name) )
 	{
 		return false;
@@ -55,8 +61,14 @@ bool Config::RegisterItem(const std::string& segment, const std::string& name)
 	return true;
 }
 
-bool Config::UnregisterItem(const std::string& segment, const std::string& name)
+bool Config::UnregisterItem(std::string segment, std::string name)
 {
+	Helper::Trim(segment);
+	Helper::Upper(segment);
+
+	Helper::Trim(name);
+	Helper::Upper(name);
+
 	std::list<CfgItem>::iterator it;
 	if ( FindItem(segment, name, &it) )
 	{
@@ -131,29 +143,30 @@ void Config::ReadConfig() throw(Exception)
 	m_fsCfg.close();
 }
 
-std::string Config::GetCfgValue(const std::string& segment, const std::string& name) throw(Exception)
+std::string Config::GetCfgValue(std::string segment, std::string name) throw(Exception)
 {
-	std::string str_err;
+	Helper::Trim(segment);
+	Helper::Upper(segment);
+
+	Helper::Trim(name);
+	Helper::Upper(name);
 
 	std::list<CfgItem>::iterator it;
 	if ( FindItem(segment, name, &it) )
 	{
 		if ( !(it->m_bFind) )
 		{
-			str_err = "Configure item [" + segment + "->" + name + "] not found!";
-			throw Exception(CFG_ITEM_NOT_FOUND, str_err);
+			throw Exception(CFG_ITEM_NOT_FOUND, "Configure item ["+segment+"->"+name+"] not found!");
 		}
 		else if ( it->m_value.empty() )
 		{
-			str_err = "Configure item [" + segment + "->" + name + "] value is invalid!";
-			throw Exception(CFG_VALUE_INVALID, str_err);
+			throw Exception(CFG_VALUE_INVALID, "Configure item ["+segment+"->"+name+"] value is invalid!");
 		}
 
 		return it->m_value;
 	}
 
-	str_err = "Configure item [" + segment + "->" + name + "] unregistered!";
-	throw Exception(CFG_UNREGISTER_ITEM, str_err);
+	throw Exception(CFG_UNREGISTER_ITEM, "Configure item ["+segment+"->"+name+"] unregistered!");
 	return std::string();
 }
 
@@ -204,6 +217,7 @@ bool Config::TryGetSegment(const std::string& str, std::string& segment) const
 	{
 		segment = str.substr(1,SIZE-2);
 		Helper::Trim(segment);
+		Helper::Upper(segment);
 		return true;
 	}
 	return false;
@@ -222,6 +236,7 @@ bool Config::TryGetNameValue(const std::string& str, std::string& name, std::str
 	{
 		name = str.substr(0,equal_pos);
 		Helper::Trim(name);
+		Helper::Upper(name);
 
 		value = str.substr(equal_pos+1);
 		Helper::Trim(value);

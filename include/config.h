@@ -38,12 +38,12 @@ public:
 
 public:
 	void SetCfgFile(const std::string& cfg_file) throw(Exception);
-	bool RegisterItem(const std::string& segment, const std::string& name);
-	bool UnregisterItem(const std::string& segment, const std::string& name);
+	bool RegisterItem(std::string segment, std::string name);
+	bool UnregisterItem(std::string segment, std::string name);
 	void InitItems();
 	void DeleteItems();
 	void ReadConfig() throw(Exception);
-	std::string GetCfgValue(const std::string& segment, const std::string& name) throw(Exception);
+	std::string GetCfgValue(std::string segment, std::string name) throw(Exception);
 	float GetCfgFloatVal(const std::string& segment, const std::string& name);
 	long long GetCfgLongVal(const std::string& segment, const std::string& name);
 	bool GetCfgBoolVal(const std::string& segment, const std::string& name);

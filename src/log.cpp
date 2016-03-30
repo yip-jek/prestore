@@ -152,7 +152,7 @@ void Log::OpenNewLogger() throw(Exception)
 
 	do
 	{
-		sprintf(log_name, "LOG_%lld_%s_%03d.log", _sLogCcmID, DAY_TIME.c_str(), log_id++);
+		sprintf(log_name, "LOG_%lld_%s_%04d.log", _sLogCcmID, DAY_TIME.c_str(), log_id++);
 
 		fullLogPath = m_sLogPath + log_name;
 

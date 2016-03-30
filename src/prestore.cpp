@@ -95,6 +95,7 @@ void Prestore::Init() throw(Exception)
 
 void Prestore::Run() throw(Exception)
 {
+#ifdef DEBUG
 	Log::Instance()->Output("WAIT_SECS=%d", m_nWaitSecs);
 	Log::Instance()->Output("PACKETS=%d", m_nPackets);
 	Log::Instance()->Output("GENERAL=%d", m_bGeneral);
@@ -103,11 +104,34 @@ void Prestore::Run() throw(Exception)
 	Log::Instance()->Output("DEFAULT_CHANNEL=%s", m_sDefaultChannel.c_str());
 	Log::Instance()->Output("SUSPEND_PATH=%s", m_sSuspendPath.c_str());
 
+	switch ( m_inputType )
+	{
+	case ITYPE_MQ:
+		Log::Instance()->Output("INPUT_TYPE=MQ");
+		break;
+	case ITYPE_FILE:
+		Log::Instance()->Output("INPUT_TYPE=FILE");
+		break;
+	default:
+		Log::Instance()->Output("INPUT_TYPE=UNKNOWN");
+		break;
+	}
+#ifdef AIX
+	Log::Instance()->Output("MQ_Manager=%s", m_sMQMgr.c_str());
+#endif
+
+	int counter = 0;
+	for ( std::set<std::string>::iterator it = m_sInputPaths.begin(); it != m_sInputPaths.end(); ++it )
+	{
+		Log::Instance()->Output("PATH %d: [%s]", ++counter, it->c_str());
+	}
+#endif
+
 #if 0
 	while ( GSignal::IsRunning() )
 #endif
 	{
-		sleep(1);
+		sleep(m_nWaitSecs);
 	}
 }
 
@@ -147,43 +171,122 @@ void Prestore::InitInputMQ(const std::string& paths) throw(Exception)
 	std::list<std::string> list_str;
 	Helper::SplitStr(paths, ":", list_str, true);
 
-	int size = list_str.size();
-	Log::Instance()->Output("LIST SIZE: %d", size);
+	if ( list_str.size() != 2 )
+	{
+		throw Exception(PS_CFG_ITEM_INVALID, "The [INPUT->INPUT_PATH] (Type:MQ) configuration is invalid!");
+	}
+
 	std::list<std::string>::iterator it = list_str.begin();
-	for ( int i = 0; i < size; ++i )
+	m_sMQMgr = *it;
+	if ( m_sMQMgr.empty() )
 	{
-		Log::Instance()->Output("List item %d = [%s]", (i+1), (it++)->c_str());
+		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Manager] is blank!");
+	}
+	Helper::Upper(m_sMQMgr);
+
+	std::string mq_queues = *(++it);
+	Helper::Upper(mq_queues);
+
+	list_str.clear();
+	Helper::SplitStr(mq_queues, ",", list_str, true);
+
+	if ( list_str.empty() )
+	{
+		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Queue(s)...] is blank!");
 	}
 
-	it = list_str.begin();
-	++it;
-	Helper::SplitStr(*it, ",", list_str, true);
-	size = list_str.size();
-	Log::Instance()->Output("LIST SIZE: %d", size);
-	it = list_str.begin();
-	for ( int i = 0; i < size; ++i )
+	m_sInputPaths.clear();
+	for ( it = list_str.begin(); it != list_str.end(); ++it )
 	{
-		Log::Instance()->Output("List item %d = [%s]", (i+1), (it++)->c_str());
-	}
+		if ( it->empty() )
+		{
+			throw Exception(PS_CFG_ITEM_INVALID, "There is a blank in input (Type:MQ) configuration [MQ_Queue(s)] !");
+		}
 
-	//size_t pos = paths.find(':');
-	//if ( std::string::npos == pos )
-	//{
-	//	throw Exception(PS_CFG_ITEM_INVALID, "Can not get the QM_Manager configuration!");
-	//}
+		if ( m_sInputPaths.find(*it) != m_sInputPaths.end() )
+		{
+			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Queue:"+*it+"] duplication!");
+		}
+
+		m_sInputPaths.insert(*it);
+	}
 }
 #endif
 
 void Prestore::InitInputPaths(const std::string& paths) throw(Exception)
 {
 	// Format: [ Path1, Path2, Path3, ...]
+	std::list<std::string> list_str;
+	Helper::SplitStr(paths, ",", list_str, true);
+
+	if ( list_str.empty() )
+	{
+		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration is blank!");
+	}
+
+	m_sInputPaths.clear();
+	for ( std::list<std::string>::iterator it = list_str.begin(); it != list_str.end(); ++it )
+	{
+		if ( it->empty() )
+		{
+			throw Exception(PS_CFG_ITEM_INVALID, "There is a blank in input (Type:FILE) configuration!");
+		}
+
+		if ( !Helper::IsDirectory(*it) )
+		{
+			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] is not a valid path!");
+		}
+
+		if ( !Helper::CheckReadPermission(*it) )
+		{
+			throw Exception(PS_PERMISSION_DENIED, "The input (Type:FILE) configuration ["+*it+"] read permission denied!");
+		}
+
+		if ( !Helper::CheckWritePermission(*it) )
+		{
+			throw Exception(PS_PERMISSION_DENIED, "The input (Type:FILE) configuration ["+*it+"] write permission denied!");
+		}
+
+		Helper::AddDirSlash(*it);
+
+		if ( m_sInputPaths.find(*it) != m_sInputPaths.end() )
+		{
+			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] duplication!");
+		}
+
+		m_sInputPaths.insert(*it);
+	}
 }
 
 void Prestore::InitChannels() throw(Exception)
 {
-	m_mChannels.clear();
+	m_pCfg->DeleteItems();
+
+	std::string channel_segment;
 	for ( int i = 0; i < m_nTotalChannels; ++i )
 	{
+		channel_segment = "CHANNEL_" + Helper::Num2Str(i+1);
+		m_pCfg->RegisterItem(channel_segment, "ID");
+		m_pCfg->RegisterItem(channel_segment, "PATH");
+		m_pCfg->RegisterItem(channel_segment, "SUB_PATH");
+	}
+
+	m_pCfg->ReadConfig();
+
+	m_mChannels.clear();
+
+	std::string tmp;
+	for ( int i = 0; i < m_nTotalChannels; ++i )
+	{
+		channel_segment = "CHANNEL_" + Helper::Num2Str(i+1);
+		tmp = m_pCfg->GetCfgValue(channel_segment, "ID");
+		Log::Instance()->Output("[%s] ID=[%s]\n", channel_segment.c_str(), tmp.c_str());
+		tmp = m_pCfg->GetCfgValue(channel_segment, "PATH");
+		Log::Instance()->Output("[%s] PATH=[%s]\n", channel_segment.c_str(), tmp.c_str());
+
+		//if ( m_mChannels.find(channel_id) != m_mChannels.end() )
+		//{
+		//}
 	}
 
 	if ( m_bGeneral )

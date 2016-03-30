@@ -54,10 +54,10 @@ public:
 		}
 	}
 
-	static std::string Num2Str(long num)
+	static std::string Num2Str(long long num)
 	{
-		char buf[32] = "";
-		snprintf(buf, sizeof(buf), "%ld", num);
+		char buf[64] = "";
+		snprintf(buf, sizeof(buf), "%lld", num);
 		return buf;
 	}
 
