@@ -35,7 +35,6 @@ private:
 #endif
 
 	void InitInputPaths(const std::string& paths) throw(Exception);
-	void InitChannels() throw(Exception);
 
 private:
 	Config*						m_pCfg;						// The conguration pointer
@@ -48,12 +47,7 @@ private:
 #endif
 
 	std::set<std::string>		m_sInputPaths;				// Input path(s)
-	bool						m_bGeneral;					// Is general_file invalid ?
-	std::string					m_sGeneralFile;				// General file path
-	int							m_nTotalChannels;			// Total channels
-	std::string 				m_sDefaultChannel;			// Default channel path
 	std::string					m_sSuspendPath;				// Suspend path
-	//std::map<int, std::string>	m_mChannels;				// The list of channels
 	ChannelPath					m_channelPath;
 };
 

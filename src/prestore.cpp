@@ -14,6 +14,7 @@ Prestore::Prestore(Config& cfg)
 ,m_inputType(ITYPE_UNKNOWN)
 ,m_bGeneral(false)
 ,m_nTotalChannels(0)
+,m_channelPath(&cfg)
 {
 }
 
@@ -32,10 +33,10 @@ void Prestore::Init() throw(Exception)
 	m_pCfg->RegisterItem("SYS", "PACKETS");
 	m_pCfg->RegisterItem("INPUT", "INPUT_TYPE");
 	m_pCfg->RegisterItem("INPUT", "INPUT_PATH");
-	m_pCfg->RegisterItem("COMMON", "GENERAL");
-	m_pCfg->RegisterItem("COMMON", "GENERAL_FILE");
-	m_pCfg->RegisterItem("COMMON", "CHANNELS");
-	m_pCfg->RegisterItem("COMMON", "DEFAULT_CHANNEL");
+	//m_pCfg->RegisterItem("COMMON", "GENERAL");
+	//m_pCfg->RegisterItem("COMMON", "GENERAL_FILE");
+	//m_pCfg->RegisterItem("COMMON", "CHANNELS");
+	//m_pCfg->RegisterItem("COMMON", "DEFAULT_CHANNEL");
 	m_pCfg->RegisterItem("COMMON", "SUSPEND_PATH");
 
 	m_pCfg->ReadConfig();
@@ -74,23 +75,23 @@ void Prestore::Init() throw(Exception)
 		throw Exception(PS_CFG_ITEM_INVALID, "The [INPUT->INPUT_TYPE] configuration is invalid!");
 	}
 
-	m_bGeneral = m_pCfg->GetCfgBoolVal("COMMON", "GENERAL");
-	if ( m_bGeneral )		// GENERAL = TRUE
-	{
-		m_sGeneralFile = InitCfgPath("COMMON", "GENERAL_FILE", true, false, false);
-	}
+	//m_bGeneral = m_pCfg->GetCfgBoolVal("COMMON", "GENERAL");
+	//if ( m_bGeneral )		// GENERAL = TRUE
+	//{
+	//	m_sGeneralFile = InitCfgPath("COMMON", "GENERAL_FILE", true, false, false);
+	//}
 
-	m_nTotalChannels = (int)m_pCfg->GetCfgLongVal("COMMON", "CHANNELS");
-	if ( m_nTotalChannels < 0 )
-	{
-		throw Exception(PS_CFG_ITEM_INVALID, "The [COMMON->CHANNELS] configuration is invalid!");
-	}
+	//m_nTotalChannels = (int)m_pCfg->GetCfgLongVal("COMMON", "CHANNELS");
+	//if ( m_nTotalChannels < 0 )
+	//{
+	//	throw Exception(PS_CFG_ITEM_INVALID, "The [COMMON->CHANNELS] configuration is invalid!");
+	//}
 
-	m_sDefaultChannel = InitCfgPath("COMMON", "DEFAULT_CHANNEL", false, true, true);
+	//m_sDefaultChannel = InitCfgPath("COMMON", "DEFAULT_CHANNEL", false, true, true);
 
 	m_sSuspendPath = InitCfgPath("COMMON", "SUSPEND_PATH", false, true, true);
 
-	InitChannels();
+	m_channelPath.Init();
 }
 
 void Prestore::Run() throw(Exception)
@@ -98,10 +99,10 @@ void Prestore::Run() throw(Exception)
 #ifdef DEBUG
 	Log::Instance()->Output("WAIT_SECS=%d", m_nWaitSecs);
 	Log::Instance()->Output("PACKETS=%d", m_nPackets);
-	Log::Instance()->Output("GENERAL=%d", m_bGeneral);
-	Log::Instance()->Output("GENERAL_FILE=%s", m_sGeneralFile.c_str());
-	Log::Instance()->Output("TOTAL_CHANNELS=%d", m_nTotalChannels);
-	Log::Instance()->Output("DEFAULT_CHANNEL=%s", m_sDefaultChannel.c_str());
+	//Log::Instance()->Output("GENERAL=%d", m_bGeneral);
+	//Log::Instance()->Output("GENERAL_FILE=%s", m_sGeneralFile.c_str());
+	//Log::Instance()->Output("TOTAL_CHANNELS=%d", m_nTotalChannels);
+	//Log::Instance()->Output("DEFAULT_CHANNEL=%s", m_sDefaultChannel.c_str());
 	Log::Instance()->Output("SUSPEND_PATH=%s", m_sSuspendPath.c_str());
 
 	switch ( m_inputType )
@@ -255,44 +256,6 @@ void Prestore::InitInputPaths(const std::string& paths) throw(Exception)
 		}
 
 		m_sInputPaths.insert(*it);
-	}
-}
-
-void Prestore::InitChannels() throw(Exception)
-{
-	m_pCfg->DeleteItems();
-
-	std::string channel_segment;
-	for ( int i = 0; i < m_nTotalChannels; ++i )
-	{
-		channel_segment = "CHANNEL_" + Helper::Num2Str(i+1);
-		m_pCfg->RegisterItem(channel_segment, "ID");
-		m_pCfg->RegisterItem(channel_segment, "PATH");
-		m_pCfg->RegisterItem(channel_segment, "SUB_PATH");
-	}
-
-	m_pCfg->ReadConfig();
-
-	//m_mChannels.clear();
-
-	std::string tmp;
-	for ( int i = 0; i < m_nTotalChannels; ++i )
-	{
-		channel_segment = "CHANNEL_" + Helper::Num2Str(i+1);
-		tmp = m_pCfg->GetCfgValue(channel_segment, "ID");
-		Log::Instance()->Output("[%s] ID=[%s]\n", channel_segment.c_str(), tmp.c_str());
-		tmp = m_pCfg->GetCfgValue(channel_segment, "PATH");
-		Log::Instance()->Output("[%s] PATH=[%s]\n", channel_segment.c_str(), tmp.c_str());
-
-		//if ( m_mChannels.find(channel_id) != m_mChannels.end() )
-		//{
-		//}
-	}
-
-	if ( m_bGeneral )
-	{
-//		Config g_cfg(m_sGeneralFile);
-//		g_cfg->RegisterItem("COMMON"
 	}
 }
 

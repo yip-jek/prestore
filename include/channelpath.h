@@ -6,6 +6,8 @@
 #include <string>
 #include "exception.h"
 
+class Config;
+
 class STPath
 {
 public:
@@ -13,7 +15,10 @@ public:
 	~STPath();
 
 public:
-	void Init(const std::string& path, const std::string& sub_path) throw(Exception);
+	static void CheckPath(std::string& path, bool check_read, bool check_write) throw(Exception);
+
+public:
+	void Init(std::string path, std::string sub_path) throw(Exception);
 	std::string GetPath();
 
 private:
@@ -24,14 +29,20 @@ private:
 class ChannelPath
 {
 public:
-	ChannelPath();
+	ChannelPath(Config* p_cfg);
 	~ChannelPath();
 
 public:
-	void AddChannelPath() throw(Exception);
+	void Init() throw(Exception);
 	std::string GetChannelPath(int channel_id);
 
 private:
+	void SetDefaultChannel(std::string default_chnn) throw(Exception);
+	void SetGeneralChannel(const std::string& general_chnn) throw(Exception);
+	void SetMapChannels(std::map<int, STPath>& m_chann);
+
+private:
+	Config*					m_pCfg;
 	std::string				m_sDefaultChannel;
 	std::map<int, STPath>	m_mChnnPath;
 	std::map<int, STPath>	m_mGeneralChannel;

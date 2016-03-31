@@ -18,5 +18,7 @@
 #define PS_PERMISSION_DENIED          (3003)
 #define PS_UNSUPPORT_INPUTTYPE        (3004)
 
+#define CP_PATH_INVALID               (4001)
+
 #endif 
 
