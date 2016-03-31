@@ -273,7 +273,7 @@ void Prestore::InitChannels() throw(Exception)
 
 	m_pCfg->ReadConfig();
 
-	m_mChannels.clear();
+	//m_mChannels.clear();
 
 	std::string tmp;
 	for ( int i = 0; i < m_nTotalChannels; ++i )

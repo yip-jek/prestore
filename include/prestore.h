@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include "exception.h"
+#include "channelpath.h"
 
 class Config;
 
@@ -52,7 +53,8 @@ private:
 	int							m_nTotalChannels;			// Total channels
 	std::string 				m_sDefaultChannel;			// Default channel path
 	std::string					m_sSuspendPath;				// Suspend path
-	std::map<int, std::string>	m_mChannels;				// The list of channels
+	//std::map<int, std::string>	m_mChannels;				// The list of channels
+	ChannelPath					m_channelPath;
 };
 
 #endif	// _PRESTORE_H_
