@@ -18,7 +18,8 @@
 #define PS_PERMISSION_DENIED          (3003)
 #define PS_UNSUPPORT_INPUTTYPE        (3004)
 
-#define CP_PATH_INVALID               (4001)
+#define CP_PATH_FILE_INVALID          (4001)
+#define CP_CHANNEL_ID_INVALID         (4002)
 
 #endif 
 

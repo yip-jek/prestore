@@ -1,6 +1,7 @@
 #ifndef _CHANNEL_PATH_H_
 #define _CHANNEL_PATH_H_
 
+#include <list>
 #include <map>
 #include <set>
 #include <string>
@@ -15,13 +16,17 @@ public:
 	~STPath();
 
 public:
-	static void CheckPath(std::string& path, bool check_read, bool check_write) throw(Exception);
+	static void CheckPathFile(std::string& path_file, bool is_dir, bool check_read, bool check_write) throw(Exception);
 
 public:
 	void Init(std::string path, std::string sub_path) throw(Exception);
 	std::string GetPath();
 
+#ifdef DEBUG
+public:
+#else
 private:
+#endif
 	std::set<std::string>			m_sPath;
 	std::set<std::string>::iterator m_itCurrent;
 };
@@ -36,10 +41,15 @@ public:
 	void Init() throw(Exception);
 	std::string GetChannelPath(int channel_id);
 
+#ifdef DEBUG
+	std::string DebugOutput();
+#endif
+
 private:
-	void SetDefaultChannel(std::string default_chnn) throw(Exception);
-	void SetGeneralChannel(const std::string& general_chnn) throw(Exception);
-	void SetMapChannels(std::map<int, STPath>& m_chann);
+	void SetDefaultChannel() throw(Exception);
+	void SetGeneralChannel() throw(Exception);
+	void SetMapChannels(std::map<int, STPath>& m_chann) throw(Exception);
+	void SplitChannelIDs(const std::string& chnn_ids, std::list<int>& list_ids) throw(Exception);
 
 private:
 	Config*					m_pCfg;

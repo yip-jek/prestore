@@ -107,7 +107,7 @@ bool Log::Output(const char* format, ...)
 		return false;
 	}
 
-	char buf[2048] = "";
+	char buf[40960] = "";
 	va_list arg_ptr;
 	va_start(arg_ptr, format);
 	vsprintf(buf, format, arg_ptr);

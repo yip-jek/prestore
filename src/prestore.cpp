@@ -12,8 +12,6 @@ Prestore::Prestore(Config& cfg)
 ,m_nWaitSecs(0)
 ,m_nPackets(0)
 ,m_inputType(ITYPE_UNKNOWN)
-,m_bGeneral(false)
-,m_nTotalChannels(0)
 ,m_channelPath(&cfg)
 {
 }
@@ -33,10 +31,6 @@ void Prestore::Init() throw(Exception)
 	m_pCfg->RegisterItem("SYS", "PACKETS");
 	m_pCfg->RegisterItem("INPUT", "INPUT_TYPE");
 	m_pCfg->RegisterItem("INPUT", "INPUT_PATH");
-	//m_pCfg->RegisterItem("COMMON", "GENERAL");
-	//m_pCfg->RegisterItem("COMMON", "GENERAL_FILE");
-	//m_pCfg->RegisterItem("COMMON", "CHANNELS");
-	//m_pCfg->RegisterItem("COMMON", "DEFAULT_CHANNEL");
 	m_pCfg->RegisterItem("COMMON", "SUSPEND_PATH");
 
 	m_pCfg->ReadConfig();
@@ -75,21 +69,8 @@ void Prestore::Init() throw(Exception)
 		throw Exception(PS_CFG_ITEM_INVALID, "The [INPUT->INPUT_TYPE] configuration is invalid!");
 	}
 
-	//m_bGeneral = m_pCfg->GetCfgBoolVal("COMMON", "GENERAL");
-	//if ( m_bGeneral )		// GENERAL = TRUE
-	//{
-	//	m_sGeneralFile = InitCfgPath("COMMON", "GENERAL_FILE", true, false, false);
-	//}
-
-	//m_nTotalChannels = (int)m_pCfg->GetCfgLongVal("COMMON", "CHANNELS");
-	//if ( m_nTotalChannels < 0 )
-	//{
-	//	throw Exception(PS_CFG_ITEM_INVALID, "The [COMMON->CHANNELS] configuration is invalid!");
-	//}
-
-	//m_sDefaultChannel = InitCfgPath("COMMON", "DEFAULT_CHANNEL", false, true, true);
-
-	m_sSuspendPath = InitCfgPath("COMMON", "SUSPEND_PATH", false, true, true);
+	m_sSuspendPath = m_pCfg->GetCfgValue("COMMON", "SUSPEND_PATH");
+	STPath::CheckPathFile(m_sSuspendPath, true, true, true);
 
 	m_channelPath.Init();
 }
@@ -126,6 +107,9 @@ void Prestore::Run() throw(Exception)
 	{
 		Log::Instance()->Output("PATH %d: [%s]", ++counter, it->c_str());
 	}
+
+	Log::Instance()->Output(">>>>>>>>>>>>>>>>>>>>>> [CHANNELS] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+	Log::Instance()->Output("%s", m_channelPath.DebugOutput().c_str());
 #endif
 
 #if 0
@@ -136,33 +120,49 @@ void Prestore::Run() throw(Exception)
 	}
 }
 
-std::string Prestore::InitCfgPath(const std::string& segment, const std::string& name, 
-	bool check_read, bool check_write, bool is_dir) throw(Exception)
+void Prestore::InitInputPaths(const std::string& paths) throw(Exception)
 {
-	std::string cfg_val = m_pCfg->GetCfgValue(segment, name);
+	// Format: [ Path1, Path2, Path3, ...]
+	std::list<std::string> list_str;
+	Helper::SplitStr(paths, ",", list_str, true);
 
-	if ( cfg_val.empty() || (is_dir && !Helper::IsDirectory(cfg_val))
-		|| (!is_dir && !Helper::IsRegularFile(cfg_val)) )
+	if ( list_str.empty() )
 	{
-		throw Exception(PS_CFG_ITEM_INVALID, "The ["+segment+"->"+name+"] configuration is invalid!");
+		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration is blank!");
 	}
 
-	if ( check_read && !Helper::CheckReadPermission(cfg_val) )
+	m_sInputPaths.clear();
+	for ( std::list<std::string>::iterator it = list_str.begin(); it != list_str.end(); ++it )
 	{
-		throw Exception(PS_PERMISSION_DENIED, "["+name+"] "+cfg_val+" read permission denied!");
-	}
+		if ( it->empty() )
+		{
+			throw Exception(PS_CFG_ITEM_INVALID, "There is a blank in input (Type:FILE) configuration!");
+		}
 
-	if ( check_write && !Helper::CheckWritePermission(cfg_val) )
-	{
-		throw Exception(PS_PERMISSION_DENIED, "["+name+"] "+cfg_val+" write permission denied!");
-	}
+		if ( !Helper::IsDirectory(*it) )
+		{
+			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] is not a valid path!");
+		}
 
-	if ( is_dir )
-	{
-		Helper::AddDirSlash(cfg_val);
-	}
+		if ( !Helper::CheckReadPermission(*it) )
+		{
+			throw Exception(PS_PERMISSION_DENIED, "The input (Type:FILE) configuration ["+*it+"] read permission denied!");
+		}
 
-	return cfg_val;
+		if ( !Helper::CheckWritePermission(*it) )
+		{
+			throw Exception(PS_PERMISSION_DENIED, "The input (Type:FILE) configuration ["+*it+"] write permission denied!");
+		}
+
+		Helper::AddDirSlash(*it);
+
+		if ( m_sInputPaths.find(*it) != m_sInputPaths.end() )
+		{
+			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] duplication!");
+		}
+
+		m_sInputPaths.insert(*it);
+	}
 }
 
 #ifdef AIX
@@ -213,49 +213,4 @@ void Prestore::InitInputMQ(const std::string& paths) throw(Exception)
 	}
 }
 #endif
-
-void Prestore::InitInputPaths(const std::string& paths) throw(Exception)
-{
-	// Format: [ Path1, Path2, Path3, ...]
-	std::list<std::string> list_str;
-	Helper::SplitStr(paths, ",", list_str, true);
-
-	if ( list_str.empty() )
-	{
-		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration is blank!");
-	}
-
-	m_sInputPaths.clear();
-	for ( std::list<std::string>::iterator it = list_str.begin(); it != list_str.end(); ++it )
-	{
-		if ( it->empty() )
-		{
-			throw Exception(PS_CFG_ITEM_INVALID, "There is a blank in input (Type:FILE) configuration!");
-		}
-
-		if ( !Helper::IsDirectory(*it) )
-		{
-			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] is not a valid path!");
-		}
-
-		if ( !Helper::CheckReadPermission(*it) )
-		{
-			throw Exception(PS_PERMISSION_DENIED, "The input (Type:FILE) configuration ["+*it+"] read permission denied!");
-		}
-
-		if ( !Helper::CheckWritePermission(*it) )
-		{
-			throw Exception(PS_PERMISSION_DENIED, "The input (Type:FILE) configuration ["+*it+"] write permission denied!");
-		}
-
-		Helper::AddDirSlash(*it);
-
-		if ( m_sInputPaths.find(*it) != m_sInputPaths.end() )
-		{
-			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] duplication!");
-		}
-
-		m_sInputPaths.insert(*it);
-	}
-}
 

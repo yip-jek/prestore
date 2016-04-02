@@ -27,14 +27,11 @@ public:
 	void Run() throw(Exception);
 
 private:
-	std::string InitCfgPath(const std::string& segment, const std::string& name, 
-		bool check_read, bool check_write, bool is_dir) throw(Exception);
+	void InitInputPaths(const std::string& paths) throw(Exception);
 
 #ifdef AIX
 	void InitInputMQ(const std::string& paths) throw(Exception);
 #endif
-
-	void InitInputPaths(const std::string& paths) throw(Exception);
 
 private:
 	Config*						m_pCfg;						// The conguration pointer
