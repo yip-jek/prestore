@@ -2,7 +2,6 @@
 #include "def.h"
 #include "config.h"
 #include "helper.h"
-#include <iostream>
 
 STPath::STPath()
 :m_itCurrent(m_sPath.end())
@@ -193,15 +192,13 @@ std::string ChannelPath::GetChannelPath(int channel_id)
 }
 
 #ifdef DEBUG
-std::string ChannelPath::DebugOutput()
+void ChannelPath::DebugOutput(std::list<std::string>& list_str)
 {
-	std::string output;
-
-	std::cout << "m_mChnnPath.size() = " << m_mChnnPath.size() << std::endl;
+	list_str.clear();
 
 	if ( m_mChnnPath.empty() )
 	{
-		output += "[CHANNELS = 0] CHANNEL is empty!\n";
+		list_str.push_back("[CHANNELS = 0] CHANNEL is empty!");
 	}
 	else
 	{
@@ -212,16 +209,14 @@ std::string ChannelPath::DebugOutput()
 
 			for ( std::set<std::string>::iterator s_it = stp.m_sPath.begin(); s_it != stp.m_sPath.end(); ++s_it )
 			{
-				output += "Channel " + Helper::Num2Str(id) + ": [" + *s_it + "]\n";
+				list_str.push_back("Channel " + Helper::Num2Str(id) + ": [" + *s_it + "]");
 			}
 		}
 	}
 
-	std::cout << "m_mGeneralChannel.size() = " << m_mGeneralChannel.size() << std::endl;
-
 	if ( m_mGeneralChannel.empty() )
 	{
-		output += "[GENERAL CHANNELS = 0] GENERAL CHANNEL is empty!\n";
+		list_str.push_back("[GENERAL CHANNELS = 0] GENERAL CHANNEL is empty!");
 	}
 	else
 	{
@@ -232,16 +227,12 @@ std::string ChannelPath::DebugOutput()
 
 			for ( std::set<std::string>::iterator s_it = stp.m_sPath.begin(); s_it != stp.m_sPath.end(); ++s_it )
 			{
-				output += "General_channel " + Helper::Num2Str(id) + ": [" + *s_it + "]\n";
+				list_str.push_back("General_channel " + Helper::Num2Str(id) + ": [" + *s_it + "]");
 			}
 		}
 	}
 
-	std::cout << "Default_channel: " << m_sDefaultChannel << std::endl;
-
-	output += "Default_channel: [" + m_sDefaultChannel + "]\n";
-
-	return output;
+	list_str.push_back("Default_channel: [" + m_sDefaultChannel + "]");
 }
 #endif
 

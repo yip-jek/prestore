@@ -80,10 +80,6 @@ void Prestore::Run() throw(Exception)
 #ifdef DEBUG
 	Log::Instance()->Output("WAIT_SECS=%d", m_nWaitSecs);
 	Log::Instance()->Output("PACKETS=%d", m_nPackets);
-	//Log::Instance()->Output("GENERAL=%d", m_bGeneral);
-	//Log::Instance()->Output("GENERAL_FILE=%s", m_sGeneralFile.c_str());
-	//Log::Instance()->Output("TOTAL_CHANNELS=%d", m_nTotalChannels);
-	//Log::Instance()->Output("DEFAULT_CHANNEL=%s", m_sDefaultChannel.c_str());
 	Log::Instance()->Output("SUSPEND_PATH=%s", m_sSuspendPath.c_str());
 
 	switch ( m_inputType )
@@ -109,7 +105,12 @@ void Prestore::Run() throw(Exception)
 	}
 
 	Log::Instance()->Output(">>>>>>>>>>>>>>>>>>>>>> [CHANNELS] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-	Log::Instance()->Output("%s", m_channelPath.DebugOutput().c_str());
+	std::list<std::string> list_str;
+	m_channelPath.DebugOutput(list_str);
+	for ( std::list<std::string>::iterator it = list_str.begin(); it != list_str.end(); ++it )
+	{
+		Log::Instance()->Output("%s", it->c_str());
+	}
 #endif
 
 #if 0

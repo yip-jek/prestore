@@ -42,7 +42,7 @@ public:
 	std::string GetChannelPath(int channel_id);
 
 #ifdef DEBUG
-	std::string DebugOutput();
+	void DebugOutput(std::list<std::string>& list_str);
 #endif
 
 private:
