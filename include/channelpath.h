@@ -22,11 +22,7 @@ public:
 	void Init(std::string path, std::string sub_path) throw(Exception);
 	std::string GetPath();
 
-#ifdef DEBUG
-public:
-#else
 private:
-#endif
 	std::set<std::string>			m_sPath;
 	std::set<std::string>::iterator m_itCurrent;
 };
@@ -40,10 +36,6 @@ public:
 public:
 	void Init() throw(Exception);
 	std::string GetChannelPath(int channel_id);
-
-#ifdef DEBUG
-	void DebugOutput(std::list<std::string>& list_str);
-#endif
 
 private:
 	void SetDefaultChannel() throw(Exception);

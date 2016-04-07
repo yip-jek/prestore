@@ -191,51 +191,6 @@ std::string ChannelPath::GetChannelPath(int channel_id)
 	return m_sDefaultChannel;
 }
 
-#ifdef DEBUG
-void ChannelPath::DebugOutput(std::list<std::string>& list_str)
-{
-	list_str.clear();
-
-	if ( m_mChnnPath.empty() )
-	{
-		list_str.push_back("[CHANNELS = 0] CHANNEL is empty!");
-	}
-	else
-	{
-		for ( std::map<int, STPath>::iterator it = m_mChnnPath.begin(); it != m_mChnnPath.end(); ++it )
-		{
-			int id = it->first;
-			STPath& stp = it->second;
-
-			for ( std::set<std::string>::iterator s_it = stp.m_sPath.begin(); s_it != stp.m_sPath.end(); ++s_it )
-			{
-				list_str.push_back("Channel " + Helper::Num2Str(id) + ": [" + *s_it + "]");
-			}
-		}
-	}
-
-	if ( m_mGeneralChannel.empty() )
-	{
-		list_str.push_back("[GENERAL CHANNELS = 0] GENERAL CHANNEL is empty!");
-	}
-	else
-	{
-		for ( std::map<int, STPath>::iterator it = m_mGeneralChannel.begin(); it != m_mGeneralChannel.end(); ++it )
-		{
-			int id = it->first;
-			STPath& stp = it->second;
-
-			for ( std::set<std::string>::iterator s_it = stp.m_sPath.begin(); s_it != stp.m_sPath.end(); ++s_it )
-			{
-				list_str.push_back("General_channel " + Helper::Num2Str(id) + ": [" + *s_it + "]");
-			}
-		}
-	}
-
-	list_str.push_back("Default_channel: [" + m_sDefaultChannel + "]");
-}
-#endif
-
 void ChannelPath::SetMapChannels(std::map<int, STPath>& m_chann) throw(Exception)
 {
 	const int CHANNELS = (int)m_pCfg->GetCfgLongVal("COMMON", "CHANNELS");

@@ -6,12 +6,12 @@
 #include "log.h"
 #include "helper.h"
 #include "def.h"
+#include "input.h"
 
 Prestore::Prestore(Config& cfg)
 :m_pCfg(&cfg)
 ,m_nWaitSecs(0)
 ,m_nPackets(0)
-,m_inputType(ITYPE_UNKNOWN)
 ,m_channelPath(&cfg)
 {
 }
@@ -53,7 +53,6 @@ void Prestore::Init() throw(Exception)
 	if ( 1 == type )
 	{
 #ifdef AIX
-		m_inputType = ITYPE_MQ;
 		InitInputMQ(input_paths);
 #else
 		throw Exception(PS_UNSUPPORT_INPUTTYPE, "Unsupport \"MQ\" input type in non-AIX environment!");
@@ -61,7 +60,6 @@ void Prestore::Init() throw(Exception)
 	}
 	else if ( 2 == type )
 	{
-		m_inputType = ITYPE_FILE;
 		InitInputPaths(input_paths);
 	}
 	else
@@ -79,42 +77,6 @@ void Prestore::Init() throw(Exception)
 
 void Prestore::Run() throw(Exception)
 {
-#ifdef DEBUG
-	Log::Instance()->Output("WAIT_SECS=%d", m_nWaitSecs);
-	Log::Instance()->Output("PACKETS=%d", m_nPackets);
-	Log::Instance()->Output("SUSPEND_PATH=%s", m_sSuspendPath.c_str());
-
-	switch ( m_inputType )
-	{
-	case ITYPE_MQ:
-		Log::Instance()->Output("INPUT_TYPE=MQ");
-		break;
-	case ITYPE_FILE:
-		Log::Instance()->Output("INPUT_TYPE=FILE");
-		break;
-	default:
-		Log::Instance()->Output("INPUT_TYPE=UNKNOWN");
-		break;
-	}
-#ifdef AIX
-	Log::Instance()->Output("MQ_Manager=%s", m_sMQMgr.c_str());
-#endif
-
-	int counter = 0;
-	for ( std::set<std::string>::iterator it = m_sInputPaths.begin(); it != m_sInputPaths.end(); ++it )
-	{
-		Log::Instance()->Output("PATH %d: [%s]", ++counter, it->c_str());
-	}
-
-	Log::Instance()->Output(">>>>>>>>>>>>>>>>>>>>>> [CHANNELS] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-	std::list<std::string> list_str;
-	m_channelPath.DebugOutput(list_str);
-	for ( std::list<std::string>::iterator it = list_str.begin(); it != list_str.end(); ++it )
-	{
-		Log::Instance()->Output("%s", it->c_str());
-	}
-#endif
-
 	while ( GSignal::IsRunning() )
 	{
 		sleep(m_nWaitSecs);
@@ -197,7 +159,7 @@ void Prestore::InitInputMQ(const std::string& paths) throw(Exception)
 		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Queue(s)...] is blank!");
 	}
 
-	m_sInputPaths.clear();
+	std::set<std::string> set_path;
 	for ( it = list_str.begin(); it != list_str.end(); ++it )
 	{
 		if ( it->empty() )
@@ -205,7 +167,7 @@ void Prestore::InitInputMQ(const std::string& paths) throw(Exception)
 			throw Exception(PS_CFG_ITEM_INVALID, "There is a blank in input (Type:MQ) configuration [MQ_Queue(s)] !");
 		}
 
-		if ( m_sInputPaths.find(*it) != m_sInputPaths.end() )
+		if ( set_path.find(*it) != set_path.end() )
 		{
 			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Queue:"+*it+"] duplication!");
 		}

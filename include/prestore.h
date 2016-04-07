@@ -3,24 +3,17 @@
 
 #include <string>
 #include <map>
-#include <set>
 #include "exception.h"
 #include "channelpath.h"
 
 class Config;
+class Input;
 
 class Prestore
 {
 public:
 	Prestore(Config& cfg);
 	virtual ~Prestore();
-
-	enum INPUT_TYPE
-	{
-		ITYPE_UNKNOWN	= 0,
-		ITYPE_MQ		= 1,
-		ITYPE_FILE		= 2
-	};
 
 public:
 	void Init() throw(Exception);
@@ -37,13 +30,14 @@ private:
 	Config*						m_pCfg;						// The conguration pointer
 	int							m_nWaitSecs;				// Sleep seconds in one loop
 	int							m_nPackets;					// Process packets in one loop
-	INPUT_TYPE					m_inputType;				// Input type
+	Input*						m_pInput;
 
 #ifdef AIX
 	std::string					m_sMQMgr;					// MQ Manager
 #endif
 
-	std::set<std::string>		m_sInputPaths;				// Input path(s)
+	std::set<std::string>		m_sInputPaths;				// Input
+	std::set<DIR*>				m_sInputDIR;				// Input DIR(s)
 	std::string					m_sSuspendPath;				// Suspend path
 	ChannelPath					m_channelPath;
 };
