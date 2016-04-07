@@ -2,6 +2,7 @@
 #define _EXCEPTION_H_
 
 #include <string>
+#include <stdarg.h>
 
 class Exception
 {
@@ -10,6 +11,17 @@ public:
 	{}
 	Exception(int error, const std::string& descript): m_errorcode(error), m_description(descript)
 	{}
+	Exception(int error, const char* fmt, ...): m_errorcode(error)
+	{
+		char buf[2048] = "";
+
+		va_list ap;
+		va_start(ap, fmt);
+		vsnprintf(buf, sizeof(buf), fmt, ap);
+		va_end(ap);
+
+		m_description = buf;
+	}
 	virtual ~Exception() {}
 
 public:
@@ -21,6 +33,20 @@ public:
 
 	void Descript(const std::string& descript)
 	{ m_description = descript; }
+
+	void ErrorInfo(int error, const char* fmt, ...)
+	{
+		m_errorcode = error;
+
+		char buf[2048] = "";
+
+		va_list ap;
+		va_start(ap, fmt);
+		vsnprintf(buf, sizeof(buf), fmt, ap);
+		va_end(ap);
+
+		m_description = buf;
+	}
 
 	std::string What() const
 	{ return m_description; }

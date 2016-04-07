@@ -17,9 +17,13 @@
 #define PS_CFG_ITEM_INVALID           (3002)
 #define PS_PERMISSION_DENIED          (3003)
 #define PS_UNSUPPORT_INPUTTYPE        (3004)
+#define PS_INPUT_INVALID              (3005)
 
 #define CP_PATH_FILE_INVALID          (4001)
 #define CP_CHANNEL_ID_INVALID         (4002)
+
+#define INPUT_OPEN_FAIL               (5001)
+#define INPUT_DELETE_FAIL             (5002)
 
 #endif 
 

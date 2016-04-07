@@ -4,7 +4,6 @@
 #include "gsignal.h"
 #include "config.h"
 #include "log.h"
-#include "helper.h"
 #include "def.h"
 #include "input.h"
 
@@ -12,19 +11,21 @@ Prestore::Prestore(Config& cfg)
 :m_pCfg(&cfg)
 ,m_nWaitSecs(0)
 ,m_nPackets(0)
+,m_pInput(NULL)
 ,m_channelPath(&cfg)
 {
 }
 
 Prestore::~Prestore()
 {
+	ReleaseInput();
 }
 
 void Prestore::Init() throw(Exception)
 {
 	if ( NULL == m_pCfg )
 	{
-		throw Exception(PS_CONFIG_INVALID, "The configuration pointer is empty!");
+		throw Exception(PS_CONFIG_INVALID, "The configuration pointer is NULL!");
 	}
 
 	m_pCfg->RegisterItem("SYS", "WAIT_SEC");
@@ -49,23 +50,26 @@ void Prestore::Init() throw(Exception)
 
 	std::string input_paths = m_pCfg->GetCfgValue("INPUT", "INPUT_PATH");
 
+	ReleaseInput();
+
 	int type = (int)m_pCfg->GetCfgLongVal("INPUT", "INPUT_TYPE");
 	if ( 1 == type )
 	{
 #ifdef AIX
-		InitInputMQ(input_paths);
+		m_pInput = new InputMQ(input_paths);
 #else
 		throw Exception(PS_UNSUPPORT_INPUTTYPE, "Unsupport \"MQ\" input type in non-AIX environment!");
 #endif
 	}
 	else if ( 2 == type )
 	{
-		InitInputPaths(input_paths);
+		m_pInput = new InputPath(input_paths);
 	}
 	else
 	{
 		throw Exception(PS_CFG_ITEM_INVALID, "The [INPUT->INPUT_TYPE] configuration is invalid!");
 	}
+	m_pInput->Init();
 
 	m_sSuspendPath = m_pCfg->GetCfgValue("COMMON", "SUSPEND_PATH");
 	STPath::CheckPathFile(m_sSuspendPath, true, true, true);
@@ -77,103 +81,33 @@ void Prestore::Init() throw(Exception)
 
 void Prestore::Run() throw(Exception)
 {
+	if ( NULL == m_pInput )
+	{
+		throw Exception(PS_INPUT_INVALID, "The input pointer is NULL!");
+	}
+
 	while ( GSignal::IsRunning() )
 	{
+		int counter = 0;
+
+		while ( counter < m_nPackets )
+		{
+			if ( !m_pInput->GetPacket() )
+			{
+				break;
+			}
+		}
+
 		sleep(m_nWaitSecs);
 	}
 }
 
-void Prestore::InitInputPaths(const std::string& paths) throw(Exception)
+void Prestore::ReleaseInput()
 {
-	// Format: [ Path1, Path2, Path3, ...]
-	std::list<std::string> list_str;
-	Helper::SplitStr(paths, ",", list_str, true);
-
-	if ( list_str.empty() )
+	if ( m_pInput != NULL )
 	{
-		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration is blank!");
-	}
-
-	m_sInputPaths.clear();
-	for ( std::list<std::string>::iterator it = list_str.begin(); it != list_str.end(); ++it )
-	{
-		if ( it->empty() )
-		{
-			throw Exception(PS_CFG_ITEM_INVALID, "There is a blank in input (Type:FILE) configuration!");
-		}
-
-		if ( !Helper::IsDirectory(*it) )
-		{
-			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] is not a valid path!");
-		}
-
-		if ( !Helper::CheckReadPermission(*it) )
-		{
-			throw Exception(PS_PERMISSION_DENIED, "The input (Type:FILE) configuration ["+*it+"] read permission denied!");
-		}
-
-		if ( !Helper::CheckWritePermission(*it) )
-		{
-			throw Exception(PS_PERMISSION_DENIED, "The input (Type:FILE) configuration ["+*it+"] write permission denied!");
-		}
-
-		Helper::AddDirSlash(*it);
-
-		if ( m_sInputPaths.find(*it) != m_sInputPaths.end() )
-		{
-			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] duplication!");
-		}
-
-		m_sInputPaths.insert(*it);
+		delete m_pInput;
+		m_pInput = NULL;
 	}
 }
-
-#ifdef AIX
-void Prestore::InitInputMQ(const std::string& paths) throw(Exception)
-{
-	// Format: [ QM_Mgr : QM_Queue1, QM_Queue2, QM_Queue3, ...]
-	std::list<std::string> list_str;
-	Helper::SplitStr(paths, ":", list_str, true);
-
-	if ( list_str.size() != 2 )
-	{
-		throw Exception(PS_CFG_ITEM_INVALID, "The [INPUT->INPUT_PATH] (Type:MQ) configuration is invalid!");
-	}
-
-	std::list<std::string>::iterator it = list_str.begin();
-	m_sMQMgr = *it;
-	if ( m_sMQMgr.empty() )
-	{
-		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Manager] is blank!");
-	}
-	Helper::Upper(m_sMQMgr);
-
-	std::string mq_queues = *(++it);
-	Helper::Upper(mq_queues);
-
-	list_str.clear();
-	Helper::SplitStr(mq_queues, ",", list_str, true);
-
-	if ( list_str.empty() )
-	{
-		throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Queue(s)...] is blank!");
-	}
-
-	std::set<std::string> set_path;
-	for ( it = list_str.begin(); it != list_str.end(); ++it )
-	{
-		if ( it->empty() )
-		{
-			throw Exception(PS_CFG_ITEM_INVALID, "There is a blank in input (Type:MQ) configuration [MQ_Queue(s)] !");
-		}
-
-		if ( set_path.find(*it) != set_path.end() )
-		{
-			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Queue:"+*it+"] duplication!");
-		}
-
-		m_sInputPaths.insert(*it);
-	}
-}
-#endif
 
