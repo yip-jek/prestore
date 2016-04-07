@@ -73,6 +73,8 @@ void Prestore::Init() throw(Exception)
 	STPath::CheckPathFile(m_sSuspendPath, true, true, true);
 
 	m_channelPath.Init();
+
+	Log::Instance()->Output("Init OK!");
 }
 
 void Prestore::Run() throw(Exception)
@@ -113,9 +115,7 @@ void Prestore::Run() throw(Exception)
 	}
 #endif
 
-#if 0
 	while ( GSignal::IsRunning() )
-#endif
 	{
 		sleep(m_nWaitSecs);
 	}
