@@ -29,7 +29,7 @@ void InputMQ::Init() throw(Exception)
 {
 	//Format: [ QM_Mgr : QM_Queue1, QM_Queue2, QM_Queue3, ...]
 	std::list<std::string> list_str;
-	Helper::SplitStr(paths, ":", list_str, true);
+	Helper::SplitStr(m_paths, ":", list_str, true);
 
 	if ( list_str.size() != 2 )
 	{
@@ -109,7 +109,7 @@ void InputPath::Init() throw(Exception)
 {
 	//Format: [ Path1, Path2, Path3, ...]
 	std::list<std::string> list_str;
-	Helper::SplitStr(paths, ",", list_str, true);
+	Helper::SplitStr(m_paths, ",", list_str, true);
 
 	if ( list_str.empty() )
 	{
@@ -180,7 +180,7 @@ bool InputPath::GetPacket(std::string& pack)
 			continue;
 		}
 
-		m_sFullName = m_sIter + p_dnt->d_name;
+		m_sFullName = *m_sIter + p_dnt->d_name;
 		pack = m_sFullName;
 
 		closedir(p_dir);

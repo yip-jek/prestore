@@ -13,12 +13,12 @@ public:
 	virtual ~Input();
 
 public:
-	void Init() throw(Exception) = 0;
-	bool GetPacket(std::string& pack) = 0;
-	void DelSrcPacket() = 0;
+	virtual void Init() throw(Exception) = 0;
+	virtual bool GetPacket(std::string& pack) = 0;
+	virtual void DelSrcPacket() = 0;
 
 protected:
-	void Close() = 0;
+	virtual void Close() = 0;
 
 protected:
 	std::string m_paths;
@@ -34,12 +34,12 @@ public:
 	virtual ~InputMQ();
 
 public:
-	void Init() throw(Exception);
-	bool GetPacket(std::string& pack);
-	void DelSrcPacket();
+	virtual void Init() throw(Exception);
+	virtual bool GetPacket(std::string& pack);
+	virtual void DelSrcPacket();
 
 protected:
-	void Close();
+	virtual void Close();
 
 private:
 	std::string						m_sMQMgr;
@@ -57,12 +57,12 @@ public:
 	virtual ~InputPath();
 
 public:
-	void Init() throw(Exception);
-	bool GetPacket(std::string& pack);
-	void DelSrcPacket();
+	virtual void Init() throw(Exception);
+	virtual bool GetPacket(std::string& pack);
+	virtual void DelSrcPacket();
 
 protected:
-	void Close();
+	virtual void Close();
 
 private:
 	std::set<std::string>			m_sInputDir;
