@@ -2,15 +2,16 @@
 #define _INPUT_H_
 
 #include <string>
-#include <set>
+#include <map>
+#include <deque>
 #include <dirent.h>
 #include "exception.h"
 
 class Input
 {
 public:
-	Input(const std::string& paths);
-	virtual ~Input();
+	Input(const std::string& paths, int packet);
+	virtual ~Input() {}
 
 public:
 	virtual void Init() throw(Exception) = 0;
@@ -22,6 +23,7 @@ protected:
 
 protected:
 	std::string m_paths;
+	int			m_packets;
 };
 
 //////////////////////////////////////////////////////////////////
@@ -30,7 +32,7 @@ protected:
 class InputMQ : public Input
 {
 public:
-	InputMQ(const std::string& paths);
+	InputMQ(const std::string& mq, int packet);
 	virtual ~InputMQ();
 
 public:
@@ -53,7 +55,7 @@ private:
 class InputPath : public Input
 {
 public:
-	InputPath(const std::string& paths);
+	InputPath(const std::string& paths, int packet);
 	virtual ~InputPath();
 
 public:
@@ -65,9 +67,8 @@ protected:
 	virtual void Close();
 
 private:
-	std::set<std::string>			m_sInputDir;
-	std::set<std::string>::iterator	m_sIter;
-	std::string						m_sFullName;
+	std::map<std::string, DIR*>		m_mInputDir;
+	std::deque<std::string>			m_qFullName;
 };
 
 #endif	// _INPUT_H_

@@ -3,19 +3,17 @@
 #include "def.h"
 #include "helper.h"
 
-Input::Input(const std::string& paths)
+Input::Input(const std::string& paths, int packet)
 :m_paths(paths)
+,m_packets(packet)
 {
 }
 
-Input::~Input()
-{
-}
 
 //////////////////////////////////////////////////////////////////
 #ifdef AIX
-InputMQ::InputMQ(const std::string& mq)
-:Input(mq)
+InputMQ::InputMQ(const std::string& mq, int packet)
+:Input(mq, packet)
 ,m_sIter(m_sMQQueue.end())
 {
 }
@@ -93,10 +91,10 @@ void InputMQ::Close()
 }
 #endif
 
+
 //////////////////////////////////////////////////////////////////
-InputPath::InputPath(const std::string& paths)
-:Input(paths)
-,m_sIter(m_sInputDir.end())
+InputPath::InputPath(const std::string& paths, int packet)
+:Input(paths, packet)
 {
 }
 
@@ -107,6 +105,11 @@ InputPath::~InputPath()
 
 void InputPath::Init() throw(Exception)
 {
+	if ( m_packets <= 0 )
+	{
+		throw Exception(PS_CFG_ITEM_INVALID, "The input packets is invalid!");
+	}
+
 	//Format: [ Path1, Path2, Path3, ...]
 	std::list<std::string> list_str;
 	Helper::SplitStr(m_paths, ",", list_str, true);
@@ -142,86 +145,103 @@ void InputPath::Init() throw(Exception)
 
 		Helper::AddDirSlash(*it);
 
-		if ( m_sInputDir.find(*it) != m_sInputDir.end() )
+		if ( m_mInputDir.find(*it) != m_mInputDir.end() )
 		{
 			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:FILE) configuration ["+*it+"] duplication!");
 		}
 
-		m_sInputDir.insert(*it);
+		m_mInputDir[*it] = NULL;
 	}
-
-	m_sIter = m_sInputDir.end();
 }
 
 bool InputPath::GetPacket(std::string& pack)
 {
-	if ( m_sInputDir.end() == m_sIter )
+	if ( m_qFullName.empty() )
 	{
-		m_sIter = m_sInputDir.begin();
-	}
-
-	DIR* p_dir = opendir(m_sIter->c_str());
-	if ( NULL == p_dir )
-	{
-		throw Exception(INPUT_OPEN_FAIL, "Open input path (Type:FILE) \"%s\" fail!", m_sIter->c_str());
-	}
-
-	struct dirent* p_dnt = NULL;
-
-	while ( (p_dnt = readdir(p_dir)) != NULL )
-	{
-		if ( 0 == p_dnt->d_ino || '.' == p_dnt->d_name[0] )
+		for ( std::map<std::string, DIR*>::iterator it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
 		{
-			continue;
-		}
+			it->second = open
+			DIR* p_dir = opendir(m_sIter->c_str());
+			if ( NULL == p_dir )
+			{
+				throw Exception(INPUT_OPEN_FAIL, "Open input path (Type:FILE) \"%s\" fail!", m_sIter->c_str());
+			}
 
-		if ( Helper::IsDirectory(p_dnt->d_name) )
-		{
-			continue;
-		}
+			struct dirent* p_dnt = NULL;
 
-		m_sFullName = *m_sIter + p_dnt->d_name;
-		pack = m_sFullName;
+			while ( (p_dnt = readdir(p_dir)) != NULL )
+			{
+				if ( 0 == p_dnt->d_ino || '.' == p_dnt->d_name[0] )
+				{
+					continue;
+				}
 
-		closedir(p_dir);
-		++m_sIter;
-		return true;
-	}
+				if ( Helper::IsDirectory(p_dnt->d_name) )
+				{
+					continue;
+				}
 
-	closedir(p_dir);
-	++m_sIter;
-	return false;
-}
+				m_sFullName = *m_sIter + p_dnt->d_name;
+				pack = m_sFullName;
 
-void InputPath::DelSrcPacket()
-{
-	char buf[512] = "";
-	if ( readlink(m_sFullName.c_str(), buf, sizeof(buf)) > 0 )
-	{
-		if ( unlink(m_sFullName.c_str()) < 0 )
-		{
-			throw Exception(INPUT_DELETE_FAIL, "Delete link-file \"%s\" fail!", m_sFullName.c_str());
-		}
+				closedir(p_dir);
+				++m_sIter;
+				return true;
+			}
 
-		if ( unlink(buf) < 0 )
-		{
-			throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail!", buf);
+			closedir(p_dir);
+			++m_sIter;
+			return false;
 		}
 	}
 	else
 	{
-		if ( unlink(m_sFullName.c_str()) < 0 )
+		pack = m_qFullName.front();
+		return true;
+	}
+}
+
+void InputPath::DelSrcPacket()
+{
+	if ( !m_qFullName.empty() )
+	{
+		std::string full_name = m_qFullName.front();
+
+		char buf[512] = "";
+		if ( readlink(full_name.c_str(), buf, sizeof(buf)) > 0 )
 		{
-			throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail!", m_sFullName.c_str());
+			if ( unlink(full_name.c_str()) < 0 )
+			{
+				throw Exception(INPUT_DELETE_FAIL, "Delete link-file \"%s\" fail!", full_name.c_str());
+			}
+
+			if ( unlink(buf) < 0 )
+			{
+				throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail!", buf);
+			}
 		}
+		else
+		{
+			if ( unlink(full_name.c_str()) < 0 )
+			{
+				throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail!", full_name.c_str());
+			}
+		}
+
+		m_qFullName.pop_front();
 	}
 }
 
 void InputPath::Close()
 {
-	if ( !m_sInputDir.empty() )
+	if ( !m_mInputDir.empty() )
 	{
-		m_sInputDir.clear();
+		m_mInputDir.clear();
+	}
+
+	if ( !m_qFullName.empty() )
+	{
+		m_qFullName.clear();
 	}
 }
 

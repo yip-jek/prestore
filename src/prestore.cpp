@@ -56,14 +56,14 @@ void Prestore::Init() throw(Exception)
 	if ( 1 == type )
 	{
 #ifdef AIX
-		m_pInput = new InputMQ(input_paths);
+		m_pInput = new InputMQ(input_paths, m_nPackets);
 #else
 		throw Exception(PS_UNSUPPORT_INPUTTYPE, "Unsupport \"MQ\" input type in non-AIX environment!");
 #endif
 	}
 	else if ( 2 == type )
 	{
-		m_pInput = new InputPath(input_paths);
+		m_pInput = new InputPath(input_paths, m_nPackets);
 	}
 	else
 	{
@@ -89,13 +89,18 @@ void Prestore::Run() throw(Exception)
 	while ( GSignal::IsRunning() )
 	{
 		int counter = 0;
+		std::string file_name;
 
 		while ( counter < m_nPackets )
 		{
-			if ( !m_pInput->GetPacket() )
+			if ( !m_pInput->GetPacket(file_name) )
 			{
 				break;
 			}
+
+			// Todo ...
+
+			m_pInput->DelSrcPacket();
 		}
 
 		sleep(m_nWaitSecs);
