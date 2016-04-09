@@ -1,8 +1,5 @@
 include ../rules.mk
 
-inc  = -I../include
-libs = 
-
 srcs = $(wildcard *.cpp)
 objs = $(srcs:.cpp=.o)
 bin  = $(BIN_DIR)/prestore
@@ -12,10 +9,10 @@ all: $(bin)
 	@echo "all made!"
 
 $(bin): $(objs)
-	$(CPP) $(CPP_FLAGS) -o $@ $^ $(libs)
+	$(CPP) $(CPP_FLAGS) -o $@ $^ $(LIBS)
 
 .cpp.o:
-	$(CPP) $(CPP_FLAGS) $(inc) -c $<
+	$(CPP) $(CPP_FLAGS) $(INCLS) -c $<
 
 clean:
 	@echo "deleting $(bin)"

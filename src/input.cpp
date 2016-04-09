@@ -276,8 +276,6 @@ bool InputPath::GetPacket(std::string& pack) throw(Exception)
 			it->second->Close();
 		}
 
-		Log::Instance()->Output("GetPacket queue size: %d", m_qFullName.size());
-
 		if ( m_qFullName.size() > 0 )
 		{
 			pack = m_qFullName.front();
@@ -304,14 +302,10 @@ void InputPath::DelSrcPacket()
 		char buf[512] = "";
 		if ( readlink(full_name.c_str(), buf, sizeof(buf)) > 0 )
 		{
-			Log::Instance()->Output("Delete link-file: %s", full_name.c_str());
-
 			if ( unlink(full_name.c_str()) < 0 )
 			{
 				throw Exception(INPUT_DELETE_FAIL, "Delete link-file \"%s\" fail! [FILE:%s, LINE:%d]", full_name.c_str(), __FILE__, __LINE__);
 			}
-
-			Log::Instance()->Output("Delete file: %s", buf);
 
 			if ( unlink(buf) < 0 )
 			{
@@ -320,8 +314,6 @@ void InputPath::DelSrcPacket()
 		}
 		else
 		{
-			Log::Instance()->Output("Delete file: %s", full_name.c_str());
-
 			if ( unlink(full_name.c_str()) < 0 )
 			{
 				throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail! [FILE:%s, LINE:%d]", full_name.c_str(), __FILE__, __LINE__);
