@@ -16,32 +16,32 @@ void STPath::CheckPathFile(std::string& path_file, bool is_dir, bool check_read,
 {
 	if ( path_file.empty() )
 	{
-		throw Exception(CP_PATH_FILE_INVALID, "The path_file is blank!"); 
+		throw Exception(CP_PATH_FILE_INVALID, "The path_file is blank! [FILE:%s, LINE:%d]", __FILE__, __LINE__); 
 	}
 
 	if ( is_dir )
 	{
 		if ( !Helper::IsDirectory(path_file) )
 		{
-			throw Exception(CP_PATH_FILE_INVALID, "The path \""+path_file+"\" is not valid!"); 
+			throw Exception(CP_PATH_FILE_INVALID, "The path \"%s\" is not valid! [FILE:%s, LINE:%d]", path_file.c_str(), __FILE__, __LINE__);
 		}
 	}
 	else
 	{
 		if ( !Helper::IsRegularFile(path_file) )
 		{
-			throw Exception(CP_PATH_FILE_INVALID, "The file \""+path_file+"\" is not valid!"); 
+			throw Exception(CP_PATH_FILE_INVALID, "The file \"%s\" is not valid! [FILE:%s, LINE:%d]", path_file.c_str(), __FILE__, __LINE__);
 		}
 	}
 
 	if ( check_read && !Helper::CheckReadPermission(path_file) )
 	{
-		throw Exception(PS_PERMISSION_DENIED, "The path_file \""+path_file+"\" read permission denied!");
+		throw Exception(PS_PERMISSION_DENIED, "The path_file \"%s\" read permission denied! [FILE:%s, LINE:%d]", path_file.c_str(), __FILE__, __LINE__);
 	}
 
 	if ( check_write && !Helper::CheckWritePermission(path_file) )
 	{
-		throw Exception(PS_PERMISSION_DENIED, "The path_file \""+path_file+"\" write permission denied!");
+		throw Exception(PS_PERMISSION_DENIED, "The path_file \"%s\" write permission denied! [FILE:%s, LINE:%d]", path_file.c_str(), __FILE__, __LINE__);
 	}
 
 	if ( is_dir )
@@ -74,7 +74,7 @@ void STPath::Init(std::string path, std::string sub_path) throw(Exception)
 
 			if ( m_sPath.find(sub_path) != m_sPath.end() )
 			{
-				throw Exception(CP_PATH_FILE_INVALID, "The sub_path \""+sub_path+"\" duplication!");
+				throw Exception(CP_PATH_FILE_INVALID, "The sub_path \"%s\" duplication! [FILE:%s, LINE:%d]", sub_path.c_str(), __FILE__, __LINE__);
 			}
 
 			m_sPath.insert(sub_path);
@@ -156,7 +156,7 @@ void ChannelPath::Init() throw(Exception)
 {
 	if ( NULL == m_pCfg )
 	{
-		throw Exception(PS_CONFIG_INVALID, "[CHANNEL_PATH] The configuration pointer is empty!");
+		throw Exception(PS_CONFIG_INVALID, "[CHANNEL_PATH] The configuration pointer is empty! [FILE:%s, LINE:%d]", __FILE__, __LINE__);
 	}
 
 	m_pCfg->RegisterItem("COMMON", "DEFAULT_CHANNEL");
@@ -196,7 +196,7 @@ void ChannelPath::SetMapChannels(std::map<int, STPath>& m_chann) throw(Exception
 	const int CHANNELS = (int)m_pCfg->GetCfgLongVal("COMMON", "CHANNELS");
 	if ( CHANNELS < 0 )
 	{
-		throw Exception(PS_CFG_ITEM_INVALID, "The [COMMON->CHANNELS] configuration is invalid!");
+		throw Exception(PS_CFG_ITEM_INVALID, "The [COMMON->CHANNELS] configuration is invalid! [FILE:%s, LINE:%d]", __FILE__, __LINE__);
 	}
 
 	m_chann.clear();
@@ -249,12 +249,12 @@ void ChannelPath::SetMapChannels(std::map<int, STPath>& m_chann) throw(Exception
 		{
 			if ( *it < 0 )
 			{
-				throw Exception(CP_CHANNEL_ID_INVALID, "The channel_id ["+Helper::Num2Str(*it)+"] is not valid!");
+				throw Exception(CP_CHANNEL_ID_INVALID, "The channel_id [%d] is not valid! [FILE:%s, LINE:%d]", *it, __FILE__, __LINE__);
 			}
 
 			if ( m_chann.find(*it) != m_chann.end() )
 			{
-				throw Exception(CP_CHANNEL_ID_INVALID, "The channel_id ["+Helper::Num2Str(*it)+"] duplication!");
+				throw Exception(CP_CHANNEL_ID_INVALID, "The channel_id [%d] duplication! [FILE:%s, LINE:%d]", *it, __FILE__, __LINE__);
 			}
 
 			m_chann[*it] = stp;
@@ -268,7 +268,7 @@ void ChannelPath::SplitChannelIDs(const std::string& chnn_ids, std::list<int>& l
 
 	if ( chnn_ids.empty() )
 	{
-		throw Exception(CP_CHANNEL_ID_INVALID, "The [CHANNEL->ID] is blank!");
+		throw Exception(CP_CHANNEL_ID_INVALID, "The [CHANNEL->ID] is blank! [FILE:%s, LINE:%d]", __FILE__, __LINE__);
 	}
 
 	std::list<std::string> sp_list;
@@ -280,7 +280,7 @@ void ChannelPath::SplitChannelIDs(const std::string& chnn_ids, std::list<int>& l
 	{
 		if ( it->empty() )
 		{
-			throw Exception(CP_CHANNEL_ID_INVALID, "There is a blank in the [CHANNEL->ID] configuration: "+chnn_ids);
+			throw Exception(CP_CHANNEL_ID_INVALID, "There is a blank in the [CHANNEL->ID] configuration: %s [FILE:%s, LINE:%d]", chnn_ids.c_str(), __FILE__, __LINE__);
 		}
 
 		sp2list.clear();
@@ -292,7 +292,7 @@ void ChannelPath::SplitChannelIDs(const std::string& chnn_ids, std::list<int>& l
 		{
 			if ( !Helper::IsAllNumber(*sp2_it) )
 			{
-				throw Exception(CP_CHANNEL_ID_INVALID, "There is invalid character(s) in the [CHANNEL->ID] configuration: "+chnn_ids);
+				throw Exception(CP_CHANNEL_ID_INVALID, "There is invalid character(s) in the [CHANNEL->ID] configuration: %s [FILE:%s, LINE:%d]", chnn_ids.c_str(), __FILE__, __LINE__);
 			}
 
 			list_ids.push_back(Helper::Str2Int(*sp2_it));
@@ -301,21 +301,21 @@ void ChannelPath::SplitChannelIDs(const std::string& chnn_ids, std::list<int>& l
 		{
 			if ( !Helper::IsAllNumber(*sp2_it) )
 			{
-				throw Exception(CP_CHANNEL_ID_INVALID, "There is invalid character(s) in the [CHANNEL->ID] configuration: "+chnn_ids);
+				throw Exception(CP_CHANNEL_ID_INVALID, "There is invalid character(s) in the [CHANNEL->ID] configuration: %s [FILE:%s, LINE:%d]", chnn_ids.c_str(), __FILE__, __LINE__);
 			}
 
 			int l_id = Helper::Str2Int(*sp2_it);
 
 			if ( !Helper::IsAllNumber(*(++sp2_it)) )
 			{
-				throw Exception(CP_CHANNEL_ID_INVALID, "There is invalid character(s) in the [CHANNEL->ID] configuration: "+chnn_ids);
+				throw Exception(CP_CHANNEL_ID_INVALID, "There is invalid character(s) in the [CHANNEL->ID] configuration: %s [FILE:%s, LINE:%d]", chnn_ids.c_str(), __FILE__, __LINE__);
 			}
 
 			int r_id = Helper::Str2Int(*sp2_it);
 
 			if ( l_id >= r_id )
 			{
-				throw Exception(CP_CHANNEL_ID_INVALID, "The [CHANNEL->ID] configuration \""+chnn_ids+"\" is invalid!");
+				throw Exception(CP_CHANNEL_ID_INVALID, "The [CHANNEL->ID] configuration \"%s\" is invalid! [FILE:%s, LINE:%d]", chnn_ids.c_str(), __FILE__, __LINE__);
 			}
 
 			for ( int i = l_id; i <= r_id; ++i )
@@ -325,7 +325,7 @@ void ChannelPath::SplitChannelIDs(const std::string& chnn_ids, std::list<int>& l
 		}
 		else
 		{
-			throw Exception(CP_CHANNEL_ID_INVALID, "The [CHANNEL->ID] configuration \""+chnn_ids+"\" is invalid!");
+			throw Exception(CP_CHANNEL_ID_INVALID, "The [CHANNEL->ID] configuration \"%s\" is invalid! [FILE:%s, LINE:%d]", chnn_ids.c_str(), __FILE__, __LINE__);
 		}
 	}
 }

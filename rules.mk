@@ -11,10 +11,10 @@ endif
 
 ifeq ($(shell uname -s), AIX) # OS-AIX
 CPP = xlC
-CPP_FLAGS = -g -q$(OS_BITS) -brtl -O2 -DDEBUG -DAIX
+CPP_FLAGS = -g -q$(OS_BITS) -brtl -O2 -DAIX
 else	# OS-Linux
 CPP = g++
-CPP_FLAGS = -g -m$(OS_BITS) -Wall -O2 -DDEBUG -DLINUX
+CPP_FLAGS = -g -m$(OS_BITS) -Wall -O2 -DLINUX
 endif
 
 ############################################################################

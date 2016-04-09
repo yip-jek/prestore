@@ -33,12 +33,12 @@ void Config::SetCfgFile(const std::string& cfg_file) throw(Exception)
 {
 	if ( cfg_file.empty() )
 	{
-		throw Exception(CFG_FILE_INVALID, "The configuration file_path is empty!");
+		throw Exception(CFG_FILE_INVALID, "The configuration file_path is empty! [FILE:%s, LINE:%d]", __FILE__, __LINE__);
 	}
 
 	if ( !Helper::IsRegularFile(cfg_file) )
 	{
-		throw Exception(CFG_FILE_INVALID, "The configuration file \""+cfg_file+"\" is not a regular file!");
+		throw Exception(CFG_FILE_INVALID, "The configuration file \"%s\" is not a regular file! [FILE:%s, LINE:%d]", cfg_file.c_str(), __FILE__, __LINE__);
 	}
 
 	m_cfgFile = cfg_file;
@@ -97,7 +97,7 @@ void Config::ReadConfig() throw(Exception)
 {
 	if ( m_cfgFile.empty() )
 	{
-		throw Exception(CFG_FILE_INVALID, "The configuration file unset!");
+		throw Exception(CFG_FILE_INVALID, "The configuration file unset! [FILE:%s, LINE:%d]", __FILE__, __LINE__);
 	}
 
 	std::fstream m_fsCfg;
@@ -105,7 +105,7 @@ void Config::ReadConfig() throw(Exception)
 	if ( !m_fsCfg.is_open() || !m_fsCfg.good() )
 	{
 		m_fsCfg.close();
-		throw Exception(CFG_OPEN_FILE_FAIL, "Open configuration file \""+m_cfgFile+"\" fail!");
+		throw Exception(CFG_OPEN_FILE_FAIL, "Open configuration file \"%s\" fail! [FILE:%s, LINE:%d]", m_cfgFile.c_str(), __FILE__, __LINE__);
 	}
 
 	std::string strLine;
@@ -156,17 +156,17 @@ std::string Config::GetCfgValue(std::string segment, std::string name) throw(Exc
 	{
 		if ( !(it->m_bFind) )
 		{
-			throw Exception(CFG_ITEM_NOT_FOUND, "Configure item ["+segment+"->"+name+"] not found!");
+			throw Exception(CFG_ITEM_NOT_FOUND, "Configure item [%s->%s] not found! [FILE:%s, LINE:%d]", segment.c_str(), name.c_str(), __FILE__, __LINE__);
 		}
 		else if ( it->m_value.empty() )
 		{
-			throw Exception(CFG_VALUE_INVALID, "Configure item ["+segment+"->"+name+"] value is invalid!");
+			throw Exception(CFG_VALUE_INVALID, "Configure item [%s->%s] value is invalid! [FILE:%s, LINE:%d]", segment.c_str(), name.c_str(), __FILE__, __LINE__);
 		}
 
 		return it->m_value;
 	}
 
-	throw Exception(CFG_UNREGISTER_ITEM, "Configure item ["+segment+"->"+name+"] unregistered!");
+	throw Exception(CFG_UNREGISTER_ITEM, "Configure item [%s->%s] unregistered! [FILE:%s, LINE:%d]", segment.c_str(), name.c_str(), __FILE__, __LINE__);
 	return std::string();
 }
 

@@ -15,7 +15,7 @@ public:
 
 public:
 	virtual void Init() throw(Exception) = 0;
-	virtual bool GetPacket(std::string& pack) = 0;
+	virtual bool GetPacket(std::string& pack) throw(Exception) = 0;
 	virtual void DelSrcPacket() = 0;
 
 protected:
@@ -37,21 +37,44 @@ public:
 
 public:
 	virtual void Init() throw(Exception);
-	virtual bool GetPacket(std::string& pack);
+	virtual bool GetPacket(std::string& pack) throw(Exception);
 	virtual void DelSrcPacket();
 
 protected:
 	virtual void Close();
 
 private:
-	std::string						m_sMQMgr;
-	std::set<std::string>			m_sMQQueue;
-	std::set<std::string>::iterator	m_sIter;
+	std::string								m_sMQMgr;
+	std::map<std::string, TMq>				m_mMQQueue;
+	std::map<std::string, TMq>::iterator	m_mIter;
 };
 #endif
 
 //////////////////////////////////////////////////////////////////
 // Input for path
+class Dir
+{
+private:	// noncopyable
+	Dir(const Dir& );
+	const Dir& operator = (const Dir& );
+
+public:
+	explicit Dir(const std::string& path);
+	virtual ~Dir();
+
+public:
+	void Open() throw(Exception);
+	void Close();
+	bool IsEmpty() const;
+	bool GetFileName(std::string& file_name);
+	bool GetFullName(std::string& full_name);
+
+private:
+	std::string	m_sPath;
+	DIR*		m_pDir;
+	bool		m_bEmpty;
+};
+
 class InputPath : public Input
 {
 public:
@@ -60,15 +83,15 @@ public:
 
 public:
 	virtual void Init() throw(Exception);
-	virtual bool GetPacket(std::string& pack);
+	virtual bool GetPacket(std::string& pack) throw(Exception);
 	virtual void DelSrcPacket();
 
 protected:
 	virtual void Close();
 
 private:
-	std::map<std::string, DIR*>		m_mInputDir;
-	std::deque<std::string>			m_qFullName;
+	std::map<std::string, Dir*>	m_mInputDir;
+	std::deque<std::string>		m_qFullName;
 };
 
 #endif	// _INPUT_H_

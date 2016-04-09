@@ -66,7 +66,7 @@ void Log::Init() throw(Exception)
 {
 	if ( m_sLogPath.empty() )
 	{
-		throw Exception(LE_INIT_FAIL, "[LOG] The log path is not configured!");
+		throw Exception(LE_INIT_FAIL, "[LOG] The log path is not configured! [FILE:%s, LINE:%d]", __FILE__, __LINE__);
 	}
 
 	TryCloseFileLogger();
@@ -78,14 +78,13 @@ void Log::SetPath(const std::string& path) throw(Exception)
 {
 	if ( path.empty() )
 	{
-		throw Exception(LE_FILE_PATH_EMPTY, "[LOG] The log path is empty!");
+		throw Exception(LE_FILE_PATH_EMPTY, "[LOG] The log path is empty! [FILE:%s, LINE:%d]", __FILE__, __LINE__);
 	}
 
 	DIR* p_dir = opendir(path.c_str());
 	if ( NULL == p_dir )
 	{
-		std::string str_err = "[LOG] The log path is invalid: " + path;
-		throw Exception(LE_FILE_PATH_INVALID, str_err);
+		throw Exception(LE_FILE_PATH_INVALID, "[LOG] The log path is invalid: %s [FILE:%s, LINE:%d]", path.c_str(), __FILE__, __LINE__);
 	}
 	closedir(p_dir);
 
@@ -161,8 +160,7 @@ void Log::OpenNewLogger() throw(Exception)
 	m_fsLogger.open(fullLogPath.c_str(), std::fstream::out);
 	if ( !m_fsLogger.is_open() || !m_fsLogger.good() )
 	{
-		std::string str_err = "[LOG] Can not open log file: " + fullLogPath;
-		throw Exception(LE_OPEN_FILE_FAIL, str_err);
+		throw Exception(LE_OPEN_FILE_FAIL, "[LOG] Can not open log file: %s [FILE:%s, LINE:%d]", fullLogPath.c_str(), __FILE__, __LINE__);
 	}
 }
 
