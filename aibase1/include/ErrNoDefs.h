@@ -1,0 +1,148 @@
+/***********************************************************************************
+ FileName : ErrNoDefs.h
+ Author : 谭立辉
+ Version : 0.1.001
+ Date : 2002/12/5 1:19:43
+ Description : 
+ Function List : 
+ History : 
+ 1. Date : 
+    Author : 
+    Modification : 
+ 2. 
+ ***********************************************************************************/
+
+
+#ifndef __ERRNODEFS_H__
+#define __ERRNODEFS_H__
+
+#pragma warning(disable:4786)
+///////////////////////////////////////////////////////////////////////////////////////
+// ERR and WAR Code Defines. Add by Tony
+
+/** \defgroup libsr  基础功能模块(libsr) */
+/** \{*/
+/** \file ErrNoDefs.h */
+/** \brief 出错代码和警告代码的宏定义.
+ *主要包括：
+ *-数据库链接DB_
+ *-MQ接口MQ
+ *-MISC_
+ *-挂起DSU_
+ *-丢掉DNO_
+*/
+/** \}*/
+
+#define GENERAL_ERR_BASE 9999
+
+#define DB_ERR_BASE 1000
+#define DB_WAR_BASE 1500
+
+#define DB_CONNECT_ERR DB_ERR_BASE+1
+#define DB_TBLNAME_TOO_LONG_ERR DB_ERR_BASE+2
+#define DB_BEGINTRANS_ERR DB_ERR_BASE+3
+#define DB_PREPARE_ERR DB_ERR_BASE+4
+#define DB_EXECUTE_ERR DB_ERR_BASE+5
+#define DB_FETCH_ERR DB_ERR_BASE+6
+#define DB_COMMITTRANS_ERR DB_ERR_BASE+7
+#define DB_FETCH_NO_DATA    DB_ERR_BASE+8
+#define DB_FETCH_NO_ENTITY	 DB_ERR_BASE+9
+
+#define DB_DISCONNECT_WAR DB_WAR_BASE+1
+
+#define MQ_ERR_BASE 1000
+#define MQ_WAR_BASE 1500
+
+#define MQ_CONNECT_ERR MQ_ERR_BASE+1
+#define MQ_BEGINTRANS_ERR MQ_ERR_BASE+2
+#define MQ_COMMITTRANS_ERR MQ_ERR_BASE+3
+#define MQ_ROLLBACK_ERR MQ_ERR_BASE+4
+#define MQ_NO_SET_MODE MQ_ERR_BASE+5
+#define MQ_ALREADY_CONNECT MQ_ERR_BASE+6
+
+#define MEM_ERR 2000
+#define POINTER_MISS_ERR MEM_ERR+1
+
+#define OPER_ERR 2500
+
+#define MISC_ERR_BASE 3000
+#define INVALID_PARAM                            MISC_ERR_BASE+1
+#define DS_INIT_ERR                              MISC_ERR_BASE+2
+#define RULETREE_ROOT_ID_NOT_FOUND               MISC_ERR_BASE+3
+#define NO_SUCH_SPECIFY_VALUE                    MISC_ERR_BASE+4
+#define RULETREE_SAME_ROOT_ID                    MISC_ERR_BASE+5
+#define ILL_STRCPY                               MISC_ERR_BASE+6
+#define RULE_DATA_NOT_FOUND                      MISC_ERR_BASE+7
+#define RULETREE_BASE_NOT_FOUND						 MISC_ERR_BASE+8
+#define FETCH_TBLDISP_ERR								 MISC_ERR_BASE+9
+
+#define FILE_ERR_BASE 4000
+#define OPEN_FAIL FILE_ERR_BASE+1
+
+#define HANDUP_CDR 5000
+
+#define INFO_LOAD_ERR	8888
+
+#define DSU_ERR_BASE   9000
+#define DSU_ERR_INVALID_RULEID DSU_ERR_BASE+1
+#define DSU_ERR_FETCH_NOT_PLAN	DSU_ERR_BASE+2
+#define DSU_ERR_FETCH_NOT_APN	DSU_ERR_BASE+3
+#define DSU_ERR_TAR_LACK			DSU_ERR_BASE+4
+#define DSU_ERR_FETCH_NOT_DEBTAR	DSU_ERR_BASE+5
+#define DSU_ERR_FETCH_NOT_SEPFAC	DSU_ERR_BASE+6
+#define DSU_ERR_NOT_DEFAULT	DSU_ERR_BASE+7
+#define DSU_ERR_FETCH_NOT_FEE	DSU_ERR_BASE+8
+#define DSU_ERR_FETCH_NOT_FEESTAT	DSU_ERR_BASE+9
+#define DSU_ERR_FETCH_NOT_TAR	DSU_ERR_BASE+10
+#define DSU_ERR_FETCH_NOT_EXC	DSU_ERR_BASE+11
+#define DSU_ERR_FETCH_NOT_MSI	DSU_ERR_BASE+12
+#define DSU_ERR_FETCH_NOT_ADDSRV	DSU_ERR_BASE+13
+#define DSU_ERR_ORIGINATOR_TOO_LONG DSU_ERR_BASE+14
+#define DSU_ERR_DESTINATION_TOO_LONG DSU_ERR_BASE+14
+#define DSU_ERR_FIND_NOT_FEE DSU_ERR_BASE+15
+#define DSU_ERR_RULE_MATCH_FAIL DSU_ERR_BASE+16
+
+
+
+#define DNO_ERR_BASE	 10000
+#define DNO_ERR_NO_JF	DNO_ERR_BASE+1 
+#define DNO_ERR_FAIL_STATUS DNO_ERR_BASE+2
+#define DNO_ERR_OUT_PRIV	DNO_ERR_BASE+3
+#define DNO_ERR_INPUTSRC	DNO_ERR_BASE+4
+#define DNO_ERR_PRE_INPUTSRC DNO_ERR_BASE+5
+#define DNO_ERR_RULE_MATCH_FAIL	DNO_ERR_BASE+6
+#define DNO_ERR_EXC_NOT_FOUND		DNO_ERR_BASE+7
+#define DNO_ERR_MSI_NOT_FOUND		DNO_ERR_BASE+8
+#define DNO_ERR_IMS_NOT_FOUND		DNO_ERR_BASR+9
+#define DNO_ERR_GSMMOUN DNO_ERR_BASE+10
+#define DNO_ERR_NOGMCC DNO_ERR_BASE+11
+#define DNO_ERR_NODEB_CDR DNO_ERR_BASE+12
+#define DNO_ERR_SRCIP DNO_ERR_BASE+13
+#define DNO_ERR_DEAL_OPERATOR DNO_ERR_BASE+14
+#define DNO_ERR_CHARGETYPE DNO_ERR_BASE+15
+#define DNO_ERR_FEE_TYPE DNO_ERR_BASE+16
+#define DNO_ERR_MSGTYPE DNO_ERR_BASE+17
+#define DNO_ERR_USR_TYPE DNO_ERR_BASE+18
+#define DNO_ERR_SP_CODE DNO_ERR_BASE+20
+#define DNO_ERR_SERVICE_CODE DNO_ERR_BASE+21
+#define DNO_ERR_TIME DNO_ERR_BASE+22
+#define DNO_ERR_APPLY_TYPE	DNO_ERR_BASE+23
+#define DNO_ERR_MSG_STATE	DNO_ERR_BASE+24
+#define DNO_ERR_INVIND_BRAND DNO_ERR_BASE+25
+#define DNO_ERR_INVIND_STATUS DNO_ERR_BASE+26
+#define DNO_ERR_BUS_TYPE DNO_ERR_BASE+27
+#define DNO_SUBNO_TOO_LONG      DNO_ERR_BASE+28
+#define DNO_ERR_ICP_NOT_IN_EXCID DNO_ERR_BASE+29
+#define DNO_ERR_DEST_EI DNO_ERR_BASE+30
+#define DNO_ERR_NODEB_SRV_TYPE DNO_ERR_BASE+31
+#define DNO_ERR_DNO_LIST_TYPE DNO_ERR_BASE+32
+#define DNO_ERR_SURE_TYPE DNO_ERR_BASE+33
+#define DNO_ERR_SERVICEKEY_OR_USERFEETYPE DNO_ERR_BASE+34
+#define DNO_ERR_USER_FEE_TYPE DNO_ERR_BASE+35
+#define DNO_ERR_LISTTYPE_DNO DNO_ERR_BASE+36
+#define DNO_ERR_ISMG	DNO_ERR_BASE+37
+#define DNO_ERR_OUTSP	DNO_ERR_BASE+38
+
+
+
+#endif // End of "__ERRNODEFS_H__"

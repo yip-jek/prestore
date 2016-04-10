@@ -1,8 +1,10 @@
 #include "input.h"
 #include <unistd.h>
+#include <string.h>
 #include "def.h"
 #include "helper.h"
 #include "log.h"
+#include "zcomp.h"
 
 #ifdef AIX
 #include "TMq.h"
@@ -11,7 +13,28 @@
 Input::Input(const std::string& paths, int packet)
 :m_paths(paths)
 ,m_packets(packet)
+,m_pZip(NULL)
+,m_pZipBuf(NULL)
 {
+	m_pZip = new CZip;
+
+	m_pZipBuf = new char[ZIP_MAX_SIZE];
+	memset(m_pZipBuf, 0, ZIP_MAX_SIZE);
+}
+
+Input::~Input()
+{
+	if ( m_pZip != NULL )
+	{
+		delete m_pZip;
+		m_pZip = NULL;
+	}
+
+	if ( m_pZipBuf != NULL )
+	{
+		delete[] m_pZipBuf;
+		m_pZipBuf = NULL;
+	}
 }
 
 
@@ -126,8 +149,7 @@ bool InputMQ::GetPacket(std::string& pack) throw(Exception)
 			// zip file size = 0
 		}
 
-		CZip* pZip = new CZip;
-		int decompress_size = pZip->decompress(_ptr, _PTR_MAX_SIZE, CZip::MEMORY, zip_size);
+		int decompress_size = m_pZip->decompress(_ptr, _PTR_MAX_SIZE, CZip::MEMORY, zip_size);
 		if ( decompress_size < 0 )
 		{
 			// Decompress error

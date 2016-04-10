@@ -7,11 +7,15 @@
 #include <dirent.h>
 #include "exception.h"
 
+class CZip;
+
 class Input
 {
 public:
 	Input(const std::string& paths, int packet);
-	virtual ~Input() {}
+	virtual ~Input();
+
+	static const long ZIP_MAX_SIZE = 4194304;
 
 public:
 	virtual void Init() throw(Exception) = 0;
@@ -24,6 +28,8 @@ protected:
 protected:
 	std::string m_paths;
 	int			m_packets;
+	CZip*		m_pZip;
+	char*       m_pZipBuf;
 };
 
 //////////////////////////////////////////////////////////////////

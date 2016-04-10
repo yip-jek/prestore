@@ -14,6 +14,8 @@ public:
 	Prestore(Config& cfg);
 	virtual ~Prestore();
 
+	static const long UNCOMPRESS_MAX_SIZE = 16777216;
+
 public:
 	void Init() throw(Exception);
 	void Run() throw(Exception);
@@ -28,6 +30,7 @@ private:
 	Input*				m_pInput;
 	std::string			m_sSuspendPath;				// Suspend path
 	ChannelPath			m_channelPath;
+	char*				m_pUncomBuf;
 };
 
 #endif	// _PRESTORE_H_

@@ -1,6 +1,7 @@
 #include "prestore.h"
 #include <list>
 #include <unistd.h>
+#include <string.h>
 #include "gsignal.h"
 #include "config.h"
 #include "log.h"
@@ -13,7 +14,10 @@ Prestore::Prestore(Config& cfg)
 ,m_nPackets(0)
 ,m_pInput(NULL)
 ,m_channelPath(&cfg)
+,m_pUncomBuf(NULL)
 {
+	m_pUncomBuf = new char[UNCOMPRESS_MAX_SIZE];
+	memset(m_pUncomBuf, 0, UNCOMPRESS_MAX_SIZE);
 }
 
 Prestore::~Prestore()
@@ -117,6 +121,12 @@ void Prestore::ReleaseInput()
 	{
 		delete m_pInput;
 		m_pInput = NULL;
+	}
+
+	if ( m_pUncomBuf != NULL )
+	{
+		delete[] m_pUncomBuf;
+		m_pUncomBuf = NULL;
 	}
 }
 

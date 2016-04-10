@@ -3,6 +3,16 @@ BIN_DIR = ../bin
 
 APP_INCL = -I../include
 
+
+ifeq ($(shell uname -s), AIX) # OS-AIX
+SHARE_DIR  = /usr/local/aibase1
+else	# OS-Linux
+SHARE_DIR  = ../aibase1
+endif
+
+SHARE_INCL = -I$(SHARE_DIR)/include
+SHARE_LIB  = -L$(SHARE_DIR)/lib64/ora_static -laibase1
+
 ############################################################################
 ifeq ($(shell uname -m), i686) # 32 bit OS
 OS_BITS = 32
@@ -18,18 +28,17 @@ MQ_DIR  = /usr/mqm
 MQ_INCL = -I$(MQ_DIR)/inc
 MQ_LIB  = -L$(MQ_DIR)/lib64 -limqb23ia -limqs23ia -lmqm
 
-SHARE_DIR  = /usr/local/aibase1
-SHARE_INCL = -I$(SHARE_DIR)/include/nbase
-SHARE_LIB  = -L$(SHARE_DIR)/lib64/ora_static -lnbase
+NBASE_INCL = -I$(SHARE_DIR)/include/nbase
+NBASE_LIB  = -L$(SHARE_DIR)/lib64/ora_static -lnbase
 
-INCLS = $(APP_INCL) $(MQ_INCL) $(SHARE_INCL)
-LIBS  = $(MQ_LIB) $(SHARE_LIB)
+INCLS = $(APP_INCL) $(MQ_INCL) $(SHARE_INCL) $(NBASE_INCL)
+LIBS  = $(MQ_LIB) $(SHARE_LIB) $(NBASE_LIB)
 else	# OS-Linux
 CPP = g++
 CPP_FLAGS = -g -m$(OS_BITS) -Wall -O2 -DLINUX
 
-INCLS = $(APP_INCL)
-LIBS  = 
+INCLS = $(APP_INCL) $(SHARE_INCL)
+LIBS  = $(SHARE_LIB)
 endif
 
 ############################################################################
