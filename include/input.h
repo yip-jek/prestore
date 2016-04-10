@@ -28,6 +28,8 @@ protected:
 
 //////////////////////////////////////////////////////////////////
 #ifdef AIX
+class TMq;
+
 // Input for MQ
 class InputMQ : public Input
 {
@@ -45,8 +47,8 @@ protected:
 
 private:
 	std::string								m_sMQMgr;
-	std::map<std::string, TMq>				m_mMQQueue;
-	std::map<std::string, TMq>::iterator	m_mIter;
+	std::map<std::string, TMq*>				m_mMQQueue;
+	std::map<std::string, TMq*>::iterator	m_mIter;
 };
 #endif
 
@@ -88,6 +90,8 @@ public:
 
 protected:
 	virtual void Close();
+
+private:
 
 private:
 	std::map<std::string, Dir*>	m_mInputDir;

@@ -4,6 +4,10 @@
 #include "helper.h"
 #include "log.h"
 
+#ifdef AIX
+#include "TMq.h"
+#endif
+
 Input::Input(const std::string& paths, int packet)
 :m_paths(paths)
 ,m_packets(packet)
@@ -68,7 +72,17 @@ void InputMQ::Init() throw(Exception)
 			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Queue:%s] duplication! [FILE:%s, LINE:%d]", it->c_str(), __FILE__, __LINE__);
 		}
 
-		m_mMQQueue[*it] = TMq();
+		TMq* p_mq = new TMq();
+		m_mMQQueue[*it] = p_mq;
+
+		try
+		{
+			p_mq->Connect(m_sMQMgr.c_str());
+		}
+		catch ( TException& t_ex )
+		{
+			throw Exception(INPUT_CONNECT_MQ_FAIL, "Connect MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), it->c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
+		}
 	}
 
 	m_mIter = m_mMQQueue.end();
@@ -76,17 +90,103 @@ void InputMQ::Init() throw(Exception)
 
 bool InputMQ::GetPacket(std::string& pack) throw(Exception)
 {
+	if ( m_mMQQueue.empty() )
+	{
+		return false;
+	}
+
+	if ( m_mIter != m_mMQQueue.end() )
+	{
+		++m_mIter;
+		if ( m_mMQQueue.end() == m_mIter )
+		{
+			m_mIter = m_mMQQueue.begin();
+		}
+	}
+	else
+	{
+		m_mIter = m_mMQQueue.begin();
+	}
+
+	try
+	{
+		TMq* p_mq = m_mIter->second;
+		p_mq->Begin();
+		p_mq->Open(m_mIter->first.c_str(), TMq::MQ_GET);
+		p_mq->SetMsgId();
+	
+		int mq_timeout_sec = 10;	// Timeout for ten seconds
+		if ( p_mq->GetMsg(_var, _VAR_MAX_SIZE, &zip_size, mq_timeout_sec) < 0 )
+		{
+			// NO MSG
+		}
+
+		if ( 0 == zip_size )
+		{
+			// zip file size = 0
+		}
+
+		CZip* pZip = new CZip;
+		int decompress_size = pZip->decompress(_ptr, _PTR_MAX_SIZE, CZip::MEMORY, zip_size);
+		if ( decompress_size < 0 )
+		{
+			// Decompress error
+		}
+		_ptr[decompress_size] = '\0';
+	}
+	catch ( TException& t_ex )
+	{
+		throw Exception(INPUT_GET_MQ_FAIL, "Get MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), m_mIter->first.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
+	}
+
 	return false;
 }
 
 void InputMQ::DelSrcPacket()
 {
+	if ( m_mIter != m_mMQQueue.end() )
+	{
+		try
+		{
+			m_mIter->second->Commit();
+		}
+		catch ( TException& t_ex )
+		{
+			throw Exception(INPUT_COMMIT_MQ_FAIL, "Commit MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), m_mIter->first.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
+		}
+	}
 }
 
 void InputMQ::Close()
 {
 	if ( !m_mMQQueue.empty() )
 	{
+		if ( m_mIter != m_mMQQueue.end() )
+		{
+			try
+			{
+				m_mIter->second->Rollback();
+			}
+			catch ( TException& t_ex )
+			{
+				Log::Instance()->Output("Rollback MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), m_mIter->first.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
+			}
+		}
+
+		for ( std::map<std::string, TMq*>::iterator it = m_mMQQueue.begin(); it != m_mMQQueue.end(); ++it )
+		{
+			try
+			{
+				it->second->Disconnect();
+			}
+			catch ( TException& t_ex )
+			{
+				Log::Instance()->Output("Disconnect MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), it->first.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
+			}
+
+			delete it->second;
+		}
+
 		m_mMQQueue.clear();
 	}
 }

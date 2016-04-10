@@ -109,7 +109,7 @@ bool Log::Output(const char* format, ...)
 	char buf[2048] = "";
 	va_list arg_ptr;
 	va_start(arg_ptr, format);
-	vsprintf(buf, format, arg_ptr);
+	vsnprintf(buf, sizeof(buf), format, arg_ptr);
 	va_end(arg_ptr);
 
 	std::string str_out = SimpleTime::Now().TimeStamp() + std::string("\x20\x20\x20\x20") + buf + std::string("\n");

@@ -37,5 +37,22 @@ private:
 	unsigned long  m_sCurrentFileSize;
 };
 
+class AutoLogger
+{
+public:
+	AutoLogger(): m_pLogger(Log::Instance())
+	{}
+
+	~AutoLogger()
+	{ Log::Release(); }
+
+public:
+	Log* Get() const
+	{ return m_pLogger; }
+
+private:
+	Log*	m_pLogger;
+};
+
 #endif 
 

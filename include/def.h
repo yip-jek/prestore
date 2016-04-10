@@ -24,6 +24,9 @@
 
 #define INPUT_OPEN_FAIL               (5001)
 #define INPUT_DELETE_FAIL             (5002)
+#define INPUT_CONNECT_MQ_FAIL         (5003)
+#define INPUT_GET_MQ_FAIL             (5004)
+#define INPUT_COMMIT_MQ_FAIL          (5005)
 
 #endif 
 
