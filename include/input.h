@@ -3,11 +3,13 @@
 
 #include <string>
 #include <map>
+#include <set>
 #include <deque>
 #include <dirent.h>
 #include "exception.h"
 
 class CZip;
+class Packet;
 
 class Input
 {
@@ -15,11 +17,9 @@ public:
 	Input(const std::string& paths, int packet);
 	virtual ~Input();
 
-	static const long ZIP_MAX_SIZE = 4194304;
-
 public:
 	virtual void Init() throw(Exception) = 0;
-	virtual bool GetPacket(std::string& pack) throw(Exception) = 0;
+	virtual bool GetPacket(Packet* p) throw(Exception) = 0;
 	virtual void DelSrcPacket() = 0;
 
 protected:
@@ -29,7 +29,6 @@ protected:
 	std::string m_paths;
 	int			m_packets;
 	CZip*		m_pZip;
-	char*       m_pZipBuf;
 };
 
 //////////////////////////////////////////////////////////////////
@@ -43,18 +42,25 @@ public:
 	InputMQ(const std::string& mq, int packet);
 	virtual ~InputMQ();
 
+	static const int MQ_WAIT_SEC = 3;
+
 public:
 	virtual void Init() throw(Exception);
-	virtual bool GetPacket(std::string& pack) throw(Exception);
+	virtual bool GetPacket(Packet* p) throw(Exception);
 	virtual void DelSrcPacket();
 
 protected:
 	virtual void Close();
 
 private:
-	std::string								m_sMQMgr;
-	std::map<std::string, TMq*>				m_mMQQueue;
-	std::map<std::string, TMq*>::iterator	m_mIter;
+	void NextIter(std::set<std::string>::iterator& it);
+	bool GetMQMsg(const std::string& q_name, Packet* p);
+
+private:
+	std::string						m_sMQMgr;
+	std::set<std::string>			m_sMQQueue;
+	std::set<std::string>::iterator	m_sIter;
+	TMq*							m_pMQ;
 };
 #endif
 
@@ -91,13 +97,14 @@ public:
 
 public:
 	virtual void Init() throw(Exception);
-	virtual bool GetPacket(std::string& pack) throw(Exception);
+	virtual bool GetPacket(Packet* p) throw(Exception);
 	virtual void DelSrcPacket();
 
 protected:
 	virtual void Close();
 
 private:
+	bool GetFile(std::string& file_name);
 
 private:
 	std::map<std::string, Dir*>	m_mInputDir;

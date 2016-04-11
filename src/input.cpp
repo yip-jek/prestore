@@ -5,6 +5,7 @@
 #include "helper.h"
 #include "log.h"
 #include "zcomp.h"
+#include "prestore.h"
 
 #ifdef AIX
 #include "TMq.h"
@@ -14,12 +15,8 @@ Input::Input(const std::string& paths, int packet)
 :m_paths(paths)
 ,m_packets(packet)
 ,m_pZip(NULL)
-,m_pZipBuf(NULL)
 {
 	m_pZip = new CZip;
-
-	m_pZipBuf = new char[ZIP_MAX_SIZE];
-	memset(m_pZipBuf, 0, ZIP_MAX_SIZE);
 }
 
 Input::~Input()
@@ -29,12 +26,6 @@ Input::~Input()
 		delete m_pZip;
 		m_pZip = NULL;
 	}
-
-	if ( m_pZipBuf != NULL )
-	{
-		delete[] m_pZipBuf;
-		m_pZipBuf = NULL;
-	}
 }
 
 
@@ -42,7 +33,8 @@ Input::~Input()
 #ifdef AIX
 InputMQ::InputMQ(const std::string& mq, int packet)
 :Input(mq, packet)
-,m_mIter(m_mMQQueue.end())
+,m_sIter(m_sMQQueue.end())
+,m_pMQ(NULL)
 {
 }
 
@@ -90,127 +82,139 @@ void InputMQ::Init() throw(Exception)
 			throw Exception(PS_CFG_ITEM_INVALID, "There is a blank in input (Type:MQ) configuration [MQ_Queue(s)] ! [FILE:%s, LINE:%d]", __FILE__, __LINE__);
 		}
 
-		if ( m_mMQQueue.find(*it) != m_mMQQueue.end() )
+		if ( m_sMQQueue.find(*it) != m_sMQQueue.end() )
 		{
 			throw Exception(PS_CFG_ITEM_INVALID, "The input (Type:MQ) configuration [MQ_Queue:%s] duplication! [FILE:%s, LINE:%d]", it->c_str(), __FILE__, __LINE__);
 		}
 
-		TMq* p_mq = new TMq();
-		m_mMQQueue[*it] = p_mq;
-
-		try
-		{
-			p_mq->Connect(m_sMQMgr.c_str());
-		}
-		catch ( TException& t_ex )
-		{
-			throw Exception(INPUT_CONNECT_MQ_FAIL, "Connect MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), it->c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
-		}
+		m_sMQQueue.insert(*it);
 	}
 
-	m_mIter = m_mMQQueue.end();
+	m_sIter = m_sMQQueue.end();
+
+	m_pMQ = new TMq;
+	try
+	{
+		m_pMQ->Connect(m_sMQMgr.c_str());
+	}
+	catch ( TException& t_ex )
+	{
+		throw Exception(INPUT_CONNECT_MQ_FAIL, "Connect MQ manager [%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
+	}
 }
 
-bool InputMQ::GetPacket(std::string& pack) throw(Exception)
+bool InputMQ::GetPacket(Packet* p) throw(Exception)
 {
-	if ( m_mMQQueue.empty() )
+	if ( m_sMQQueue.empty() )
 	{
 		return false;
 	}
 
-	if ( m_mIter != m_mMQQueue.end() )
-	{
-		++m_mIter;
-		if ( m_mMQQueue.end() == m_mIter )
-		{
-			m_mIter = m_mMQQueue.begin();
-		}
-	}
-	else
-	{
-		m_mIter = m_mMQQueue.begin();
-	}
+	NextIter(m_sIter);
 
-	try
+	std::set<std::string>::iterator it = m_sIter;
+	do
 	{
-		TMq* p_mq = m_mIter->second;
-		p_mq->Begin();
-		p_mq->Open(m_mIter->first.c_str(), TMq::MQ_GET);
-		p_mq->SetMsgId();
-	
-		int mq_timeout_sec = 10;	// Timeout for ten seconds
-		if ( p_mq->GetMsg(_var, _VAR_MAX_SIZE, &zip_size, mq_timeout_sec) < 0 )
+		try
 		{
-			// NO MSG
+			if ( GetMQMsg(*it, p) )
+			{
+				m_sIter = it;
+				return true;
+			}
+		}
+		catch ( TException& t_ex )
+		{
+			m_pMQ->Rollback();
+
+			throw Exception(INPUT_GET_MQ_FAIL, "Get MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), it->c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
 		}
 
-		if ( 0 == zip_size )
-		{
-			// zip file size = 0
-		}
-
-		int decompress_size = m_pZip->decompress(_ptr, _PTR_MAX_SIZE, CZip::MEMORY, zip_size);
-		if ( decompress_size < 0 )
-		{
-			// Decompress error
-		}
-		_ptr[decompress_size] = '\0';
-	}
-	catch ( TException& t_ex )
-	{
-		throw Exception(INPUT_GET_MQ_FAIL, "Get MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), m_mIter->first.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
-	}
+		NextIter(it);
+	} while ( it != m_sIter );
 
 	return false;
 }
 
 void InputMQ::DelSrcPacket()
 {
-	if ( m_mIter != m_mMQQueue.end() )
+	if ( m_sIter != m_sMQQueue.end() )
 	{
 		try
 		{
-			m_mIter->second->Commit();
+			m_pMQ->Commit();
 		}
 		catch ( TException& t_ex )
 		{
-			throw Exception(INPUT_COMMIT_MQ_FAIL, "Commit MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), m_mIter->first.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
+			throw Exception(INPUT_COMMIT_MQ_FAIL, "Commit MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), m_sIter->c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
 		}
 	}
 }
 
 void InputMQ::Close()
 {
-	if ( !m_mMQQueue.empty() )
+	if ( !m_sMQQueue.empty() )
 	{
-		if ( m_mIter != m_mMQQueue.end() )
-		{
-			try
-			{
-				m_mIter->second->Rollback();
-			}
-			catch ( TException& t_ex )
-			{
-				Log::Instance()->Output("Rollback MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), m_mIter->first.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
-			}
-		}
-
-		for ( std::map<std::string, TMq*>::iterator it = m_mMQQueue.begin(); it != m_mMQQueue.end(); ++it )
-		{
-			try
-			{
-				it->second->Disconnect();
-			}
-			catch ( TException& t_ex )
-			{
-				Log::Instance()->Output("Disconnect MQ [%s->%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), it->first.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
-			}
-
-			delete it->second;
-		}
-
-		m_mMQQueue.clear();
+		m_sMQQueue.clear();
 	}
+
+	if ( m_pMQ != NULL )
+	{
+		try
+		{
+			m_pMQ->Disconnect();
+		}
+		catch ( TException& t_ex )
+		{
+			Log::Instance()->Output("Disconnect MQ manager [%s] fail: %s [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), t_ex.getErrMsg(), __FILE__, __LINE__);
+		}
+	
+		delete m_pMQ;
+	}
+}
+
+void InputMQ::NextIter(std::set<std::string>::iterator& it)
+{
+	if ( it != m_sMQQueue.end() )
+	{
+		++it;
+		if ( m_sMQQueue.end() == it )
+		{
+			it = m_sMQQueue.begin();
+		}
+	}
+	else
+	{
+		it = m_sMQQueue.begin();
+	}
+}
+
+bool InputMQ::GetMQMsg(const std::string& q_name, Packet* p)
+{
+	m_pMQ->Begin();
+	m_pMQ->Open(q_name.c_str(), TMq::MQ_GET);
+	m_pMQ->SetMsgId();
+
+	if ( m_pMQ->GetMsg(p->m_pZipBuf, Packet::ZIP_MAX_SIZE, &(p->m_nZipSize), MQ_WAIT_SEC) < 0 )
+	{
+		return false;	// NO Msg
+	}
+
+	if ( 0 == p->m_nZipSize )	// Zip file size = 0
+	{
+		Log::Instance()->Output("<WARNING> Get MQ [%s->%s] packet size = 0!", m_sMQMgr.c_str(), q_name.c_str());
+		return false;
+	}
+
+	p->m_nUncomSize = m_pZip->decompress(p->m_pUncomBuf, Packet::UNCOMPRESS_MAX_SIZE, CZip::MEMORY, p->m_nZipSize);
+	if ( p->m_nUncomSize < 0 )
+	{
+		throw TException(INPUT_GET_MQ_FAIL, "Uncompress MQ [%s->%s] packet fail! [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), q_name.c_str(), __FILE__, __LINE__);
+	}
+	p->m_pUncomBuf[p->m_nUncomSize] = '\0';
+
+	m_pMQ->Close();
+	return true;
 }
 #endif
 
@@ -355,64 +359,15 @@ void InputPath::Init() throw(Exception)
 	}
 }
 
-bool InputPath::GetPacket(std::string& pack) throw(Exception)
+bool InputPath::GetPacket(Packet* p) throw(Exception)
 {
-	if ( m_qFullName.empty() )
+	std::string full_name;
+	if ( !GetFile(full_name) )
 	{
-		std::map<std::string, Dir*>::iterator it;
-		for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
-		{
-			it->second->Open();
-		}
-
-		bool bNoFile = false;
-		int	counter = 0;
-		std::string full_name;
-
-		while ( !bNoFile && counter < m_packets )
-		{
-			bNoFile = true;
-
-			for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
-			{
-				Dir* pDir = it->second;
-				if ( !pDir->IsEmpty() && pDir->GetFullName(full_name) )
-				{
-					m_qFullName.push_back(full_name);
-
-					if ( bNoFile )
-					{
-						bNoFile = false;
-					}
-
-					if ( ++counter >= m_packets )
-					{
-						break;
-					}
-				}
-			}
-		}
-		
-		for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
-		{
-			it->second->Close();
-		}
-
-		if ( m_qFullName.size() > 0 )
-		{
-			pack = m_qFullName.front();
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return false;
 	}
-	else
-	{
-		pack = m_qFullName.front();
-		return true;
-	}
+
+	return true;
 }
 
 void InputPath::DelSrcPacket()
@@ -461,6 +416,66 @@ void InputPath::Close()
 	if ( !m_qFullName.empty() )
 	{
 		m_qFullName.clear();
+	}
+}
+
+bool InputPath::GetFile(std::string& file_name)
+{
+	if ( m_qFullName.empty() )
+	{
+		std::map<std::string, Dir*>::iterator it;
+		for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
+		{
+			it->second->Open();
+		}
+
+		bool bNoFile = false;
+		int	counter = 0;
+		std::string full_name;
+
+		while ( !bNoFile && counter < m_packets )
+		{
+			bNoFile = true;
+
+			for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
+			{
+				Dir* pDir = it->second;
+				if ( !pDir->IsEmpty() && pDir->GetFullName(full_name) )
+				{
+					m_qFullName.push_back(full_name);
+
+					if ( bNoFile )
+					{
+						bNoFile = false;
+					}
+
+					if ( ++counter >= m_packets )
+					{
+						break;
+					}
+				}
+			}
+		}
+		
+		for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
+		{
+			it->second->Close();
+		}
+
+		if ( m_qFullName.size() > 0 )
+		{
+			file_name = m_qFullName.front();
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		file_name = m_qFullName.front();
+		return true;
 	}
 }
 

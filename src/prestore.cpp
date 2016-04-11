@@ -8,16 +8,76 @@
 #include "def.h"
 #include "input.h"
 
+Packet::Packet()
+:m_nFileID(0)
+,m_nChannelID1(-1)
+,m_nChannelID2(-1)
+,m_pZipBuf(NULL)
+,m_nZipSize(0)
+,m_pUncomBuf(NULL)
+,m_nUncomSize(0)
+{
+	BillPeriodZero();
+
+	m_pZipBuf = new char[ZIP_MAX_SIZE];
+	ZipBufZero();
+
+	m_pUncomBuf = new char[UNCOMPRESS_MAX_SIZE];
+	UncomBufZero();
+}
+
+Packet::~Packet()
+{
+	if ( m_pZipBuf != NULL )
+	{
+		delete[] m_pZipBuf;
+		m_pZipBuf = NULL;
+	}
+
+	if ( m_pUncomBuf != NULL )
+	{
+		delete[] m_pUncomBuf;
+		m_pUncomBuf = NULL;
+	}
+}
+
+void Packet::Init()
+{
+	m_nFileID     = 0;
+	m_nChannelID1 = -1;
+	m_nChannelID2 = -1;
+	m_nZipSize    = 0;
+	m_nUncomSize  = 0;
+
+	BillPeriodZero();
+	ZipBufZero();
+	UncomBufZero();
+}
+
+void Packet::BillPeriodZero()
+{
+	memset(m_sBillPeriod, 0, sizeof(m_sBillPeriod));
+}
+
+void Packet::ZipBufZero()
+{
+	memset(m_pZipBuf, 0, ZIP_MAX_SIZE);
+}
+
+void Packet::UncomBufZero()
+{
+	memset(m_pUncomBuf, 0, UNCOMPRESS_MAX_SIZE);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////
 Prestore::Prestore(Config& cfg)
 :m_pCfg(&cfg)
 ,m_nWaitSecs(0)
 ,m_nPackets(0)
 ,m_pInput(NULL)
 ,m_channelPath(&cfg)
-,m_pUncomBuf(NULL)
 {
-	m_pUncomBuf = new char[UNCOMPRESS_MAX_SIZE];
-	memset(m_pUncomBuf, 0, UNCOMPRESS_MAX_SIZE);
 }
 
 Prestore::~Prestore()
@@ -91,13 +151,15 @@ void Prestore::Run() throw(Exception)
 	}
 
 	int counter = 0;
-	std::string file_name;
+	Packet pack;
 
 	while ( GSignal::IsRunning() )
 	{
-		if ( m_pInput->GetPacket(file_name) )
+		pack.Init();
+
+		if ( m_pInput->GetPacket(&pack) )
 		{
-			Log::Instance()->Output("Get file: %s", file_name.c_str());
+			//Log::Instance()->Output("Get file: %s", file_name.c_str());
 
 			// Todo ...
 
@@ -121,12 +183,6 @@ void Prestore::ReleaseInput()
 	{
 		delete m_pInput;
 		m_pInput = NULL;
-	}
-
-	if ( m_pUncomBuf != NULL )
-	{
-		delete[] m_pUncomBuf;
-		m_pUncomBuf = NULL;
 	}
 }
 

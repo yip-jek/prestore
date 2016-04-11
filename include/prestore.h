@@ -8,13 +8,44 @@
 class Config;
 class Input;
 
+class Packet
+{
+private:	// noncopyable
+	Packet(const Packet& );
+	const Packet& operator = (const Packet& );
+
+public:
+	Packet();
+	~Packet();
+
+	static const size_t ZIP_MAX_SIZE = 4194304;
+	static const size_t UNCOMPRESS_MAX_SIZE = 16777216;
+
+public:
+	void Init();
+	void BillPeriodZero();
+	void ZipBufZero();
+	void UncomBufZero();
+
+public:
+	int		m_nFileID;
+	int		m_nChannelID1;
+	int		m_nChannelID2;
+	char	m_sBillPeriod[6+1];
+
+	char*	m_pZipBuf;
+	int		m_nZipSize;
+	char*	m_pUncomBuf;
+	int		m_nUncomSize;
+};
+
+
+//////////////////////////////////////////////////////////////////////////////////////
 class Prestore
 {
 public:
 	Prestore(Config& cfg);
 	virtual ~Prestore();
-
-	static const long UNCOMPRESS_MAX_SIZE = 16777216;
 
 public:
 	void Init() throw(Exception);
@@ -30,7 +61,6 @@ private:
 	Input*				m_pInput;
 	std::string			m_sSuspendPath;				// Suspend path
 	ChannelPath			m_channelPath;
-	char*				m_pUncomBuf;
 };
 
 #endif	// _PRESTORE_H_
