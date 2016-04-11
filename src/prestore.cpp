@@ -10,6 +10,9 @@
 #include "input.h"
 #include "packethead.h"
 
+size_t Packet::_ZIP_MAX_SIZE        = 4194304;
+size_t Packet::_UNCOMPRESS_MAX_SIZE = 16777216;
+
 Packet::Packet()
 :m_nFileID(0)
 ,m_nChannelID1(-1)
@@ -21,10 +24,10 @@ Packet::Packet()
 {
 	BillPeriodZero();
 
-	m_pZipBuf = new char[ZIP_MAX_SIZE];
+	m_pZipBuf = new char[_ZIP_MAX_SIZE];
 	ZipBufZero();
 
-	m_pUncomBuf = new char[UNCOMPRESS_MAX_SIZE];
+	m_pUncomBuf = new char[_UNCOMPRESS_MAX_SIZE];
 	UncomBufZero();
 }
 
@@ -65,12 +68,12 @@ void Packet::BillPeriodZero()
 
 void Packet::ZipBufZero()
 {
-	memset(m_pZipBuf, 0, ZIP_MAX_SIZE);
+	memset(m_pZipBuf, 0, _ZIP_MAX_SIZE);
 }
 
 void Packet::UncomBufZero()
 {
-	memset(m_pUncomBuf, 0, UNCOMPRESS_MAX_SIZE);
+	memset(m_pUncomBuf, 0, _UNCOMPRESS_MAX_SIZE);
 }
 
 
@@ -254,11 +257,11 @@ void Prestore::DistributePacket(Packet* p) throw(Exception)
 
 	if ( p->m_srcFilePath.empty() )
 	{
-		Log::Instance()->Output("Drstribute file: [FROM] MQ [TO] %s", buf);
+		Log::Instance()->Output("Distribute file: [FROM] MQ [TO] %s", buf);
 	}
 	else
 	{
-		Log::Instance()->Output("Drstribute file: [FROM] %s [TO] %s", p->m_srcFilePath.c_str(), buf);
+		Log::Instance()->Output("Distribute file: [FROM] %s [TO] %s", p->m_srcFilePath.c_str(), buf);
 	}
 
 	WriteFile(buf, p->m_pZipBuf, p->m_nZipSize);

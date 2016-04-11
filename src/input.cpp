@@ -45,6 +45,8 @@ AutoCloseMQ::~AutoCloseMQ()
 }
 
 
+int InputMQ::_MQ_WAIT_SEC = 3;
+
 InputMQ::InputMQ(const std::string& mq, int packet)
 :Input(mq, packet)
 ,m_sIter(m_sMQQueue.end())
@@ -209,9 +211,9 @@ bool InputMQ::GetMQMsg(const std::string& q_name, Packet* p)
 	m_pMQ->Open(q_name.c_str(), TMq::MQ_GET);
 	m_pMQ->SetMsgId();
 
-	AutoCloseMQ(m_pMQ);
+	AutoCloseMQ a_mq(m_pMQ);
 
-	if ( m_pMQ->GetMsg(p->m_pZipBuf, Packet::ZIP_MAX_SIZE, &(p->m_nZipSize), MQ_WAIT_SEC) < 0 )
+	if ( m_pMQ->GetMsg(p->m_pZipBuf, Packet::_ZIP_MAX_SIZE, &(p->m_nZipSize), _MQ_WAIT_SEC) < 0 )
 	{
 		return false;	// NO Msg
 	}

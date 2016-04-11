@@ -52,7 +52,7 @@ public:
 	InputMQ(const std::string& mq, int packet);
 	virtual ~InputMQ();
 
-	static const int MQ_WAIT_SEC = 3;
+	static int _MQ_WAIT_SEC;
 
 public:
 	virtual void Init() throw(Exception);

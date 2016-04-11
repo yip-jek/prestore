@@ -18,8 +18,8 @@ public:
 	Packet();
 	~Packet();
 
-	static const size_t ZIP_MAX_SIZE = 4194304;
-	static const size_t UNCOMPRESS_MAX_SIZE = 16777216;
+	static size_t _ZIP_MAX_SIZE;
+	static size_t _UNCOMPRESS_MAX_SIZE;
 
 public:
 	void Init();
