@@ -1,6 +1,7 @@
 #include "input.h"
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 #include "def.h"
 #include "helper.h"
 #include "log.h"
@@ -31,6 +32,19 @@ Input::~Input()
 
 //////////////////////////////////////////////////////////////////
 #ifdef AIX
+AutoCloseMQ::AutoCloseMQ(TMq* pMq)
+:m_pMq(pMq)
+{}
+
+AutoCloseMQ::~AutoCloseMQ()
+{
+	if ( m_pMq != NULL )
+	{
+		m_pMq->Close();
+	}
+}
+
+
 InputMQ::InputMQ(const std::string& mq, int packet)
 :Input(mq, packet)
 ,m_sIter(m_sMQQueue.end())
@@ -195,6 +209,8 @@ bool InputMQ::GetMQMsg(const std::string& q_name, Packet* p)
 	m_pMQ->Open(q_name.c_str(), TMq::MQ_GET);
 	m_pMQ->SetMsgId();
 
+	AutoCloseMQ(m_pMQ);
+
 	if ( m_pMQ->GetMsg(p->m_pZipBuf, Packet::ZIP_MAX_SIZE, &(p->m_nZipSize), MQ_WAIT_SEC) < 0 )
 	{
 		return false;	// NO Msg
@@ -206,14 +222,13 @@ bool InputMQ::GetMQMsg(const std::string& q_name, Packet* p)
 		return false;
 	}
 
-	p->m_nUncomSize = m_pZip->decompress(p->m_pUncomBuf, Packet::UNCOMPRESS_MAX_SIZE, CZip::MEMORY, p->m_nZipSize);
+	p->m_nUncomSize = m_pZip->decompress(p->m_pUncomBuf, p->m_pZipBuf, CZip::MEMORY, p->m_nZipSize);
 	if ( p->m_nUncomSize < 0 )
 	{
 		throw TException(INPUT_GET_MQ_FAIL, "Uncompress MQ [%s->%s] packet fail! [FILE:%s, LINE:%d]", m_sMQMgr.c_str(), q_name.c_str(), __FILE__, __LINE__);
 	}
 	p->m_pUncomBuf[p->m_nUncomSize] = '\0';
 
-	m_pMQ->Close();
 	return true;
 }
 #endif
@@ -298,6 +313,63 @@ bool Dir::GetFullName(std::string& full_name)
 }
 
 
+AutoFile::AutoFile()
+:m_fp(NULL)
+{
+}
+
+AutoFile::~AutoFile()
+{
+	Close();
+}
+
+bool AutoFile::Open(const std::string& file)
+{
+	Close();
+
+	m_fp = fopen(file.c_str(), "r");
+
+	return (m_fp != NULL);
+}
+
+void AutoFile::Close()
+{
+	if ( m_fp != NULL )
+	{
+		fclose(m_fp);
+		m_fp = NULL;
+	}
+}
+
+bool AutoFile::GetSize(const std::string& file, int& size)
+{
+	struct stat f_stat;
+
+	if ( stat(file.c_str(), &f_stat) != 0 )
+	{
+		return false;
+	}
+
+	size = f_stat.st_size;
+	return true;
+}
+
+bool AutoFile::Read(char* pBuf, int file_size)
+{
+	if ( NULL == m_fp )
+	{
+		return false;
+	}
+
+	if ( fread(pBuf, file_size, 1, m_fp) != 1 )
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
 InputPath::InputPath(const std::string& paths, int packet)
 :Input(paths, packet)
 {
@@ -361,13 +433,51 @@ void InputPath::Init() throw(Exception)
 
 bool InputPath::GetPacket(Packet* p) throw(Exception)
 {
-	std::string full_name;
-	if ( !GetFile(full_name) )
+	std::string file_name;
+
+	while ( GetFile(file_name) )
 	{
-		return false;
+		char buf[512] = "";
+		if ( readlink(file_name.c_str(), buf, sizeof(buf)) > 0 )
+		{
+			file_name = buf;
+		}
+
+		p->m_srcFilePath = file_name;
+
+		AutoFile af;
+		if ( !af.Open(file_name) )
+		{
+			throw Exception(INPUT_OPEN_FILE_FAIL, "Open file \"%s\" fail! %s [FILE:%s, LINE:%d]", file_name.c_str(), strerror(errno), __FILE__, __LINE__);
+		}
+
+		if ( !af.GetSize(file_name, p->m_nZipSize) )
+		{
+			throw Exception(INPUT_STAT_FILE_FAIL, "Stat file \"%s\" fail! %s [FILE:%s, LINE:%d]", file_name.c_str(), strerror(errno), __FILE__, __LINE__);
+		}
+
+		if ( 0 == p->m_nZipSize )
+		{
+			Log::Instance()->Output("<WARNING> Get file \"%s\" packet size = 0!", file_name.c_str());
+			continue;		// Next file
+		}
+
+		if ( !af.Read(p->m_pZipBuf, p->m_nZipSize) )
+		{
+			throw Exception(INPUT_READ_FILE_FAIL, "Read file \"%s\" fail! %s [FILE:%s, LINE:%d]", file_name.c_str(), strerror(errno), __FILE__, __LINE__);
+		}
+
+		p->m_nUncomSize = m_pZip->decompress(p->m_pUncomBuf, p->m_pZipBuf, CZip::MEMORY, p->m_nZipSize);
+		if ( p->m_nUncomSize < 0 )
+		{
+			throw Exception(INPUT_UNCOM_FILE_FAIL, "Uncompress file \"%s\" packet fail! [FILE:%s, LINE:%d]", file_name.c_str(), __FILE__, __LINE__);
+		}
+		p->m_pUncomBuf[p->m_nUncomSize] = '\0';
+
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 void InputPath::DelSrcPacket()

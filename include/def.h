@@ -18,6 +18,8 @@
 #define PS_PERMISSION_DENIED          (3003)
 #define PS_UNSUPPORT_INPUTTYPE        (3004)
 #define PS_INPUT_INVALID              (3005)
+#define PS_OPEN_FILE_FAIL             (3006)
+#define PS_WRITE_FILE_FAIL            (3007)
 
 #define CP_PATH_FILE_INVALID          (4001)
 #define CP_CHANNEL_ID_INVALID         (4002)
@@ -27,6 +29,14 @@
 #define INPUT_CONNECT_MQ_FAIL         (5003)
 #define INPUT_GET_MQ_FAIL             (5004)
 #define INPUT_COMMIT_MQ_FAIL          (5005)
+#define INPUT_OPEN_FILE_FAIL          (5006)
+#define INPUT_STAT_FILE_FAIL          (5007)
+#define INPUT_READ_FILE_FAIL          (5008)
+#define INPUT_UNCOM_FILE_FAIL         (5009)
+
+// Suspend error code
+#define SUS_LESS_PACKET_HEAD          (-999001)
+#define SUS_INVALID_TYPE_ID           (-999002)
 
 #endif 
 

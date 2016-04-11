@@ -35,6 +35,16 @@ protected:
 #ifdef AIX
 class TMq;
 
+class AutoCloseMQ
+{
+public:
+	AutoCloseMQ(TMq* pMq);
+	~AutoCloseMQ();
+
+private:
+	TMq*	m_pMq;
+};
+
 // Input for MQ
 class InputMQ : public Input
 {
@@ -87,6 +97,22 @@ private:
 	std::string	m_sPath;
 	DIR*		m_pDir;
 	bool		m_bEmpty;
+};
+
+class AutoFile
+{
+public:
+	AutoFile();
+	~AutoFile();
+
+public:
+	bool Open(const std::string& file);
+	void Close();
+	bool GetSize(const std::string& file, int& size);
+	bool Read(char* pBuf, int file_size);
+
+private:
+	FILE*	m_fp;
 };
 
 class InputPath : public Input

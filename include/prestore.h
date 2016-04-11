@@ -28,15 +28,17 @@ public:
 	void UncomBufZero();
 
 public:
-	int		m_nFileID;
-	int		m_nChannelID1;
-	int		m_nChannelID2;
-	char	m_sBillPeriod[6+1];
+	std::string	m_srcFilePath;
 
-	char*	m_pZipBuf;
-	int		m_nZipSize;
-	char*	m_pUncomBuf;
-	int		m_nUncomSize;
+	int			m_nFileID;
+	int			m_nChannelID1;
+	int			m_nChannelID2;
+	char		m_sBillPeriod[6+1];
+
+	char*		m_pZipBuf;
+	int			m_nZipSize;
+	char*		m_pUncomBuf;
+	int			m_nUncomSize;
 };
 
 
@@ -53,11 +55,15 @@ public:
 
 private:
 	void ReleaseInput();
+	void SuspendPacket(Packet* p, long error) throw(Exception);
+	void DistributePacket(Packet* p) throw(Exception);
+	void WriteFile(const std::string& file_name, char* pBuf, int buf_size) throw(Exception);
 
 private:
 	Config*				m_pCfg;						// The conguration pointer
 	int					m_nWaitSecs;				// Sleep seconds in one loop
 	int					m_nPackets;					// Process packets in one loop
+	int                 m_nMaxTypeID;
 	Input*				m_pInput;
 	std::string			m_sSuspendPath;				// Suspend path
 	ChannelPath			m_channelPath;
