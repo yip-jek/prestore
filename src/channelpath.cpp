@@ -1,4 +1,5 @@
 #include "channelpath.h"
+#include <algorithm>
 #include "def.h"
 #include "config.h"
 #include "helper.h"
@@ -8,8 +9,26 @@ STPath::STPath()
 {
 }
 
+STPath::STPath(const STPath& stp)
+:m_itCurrent(m_sPath.end())
+{
+	InitCopy(stp.m_sPath);
+}
+
 STPath::~STPath()
 {
+}
+
+const STPath& STPath::operator = (const STPath& stp)
+{
+	if ( this != &stp )
+	{
+		InitCopy(stp.m_sPath);
+
+		this->m_itCurrent = this->m_sPath.end();
+	}
+
+	return *this;
 }
 
 void STPath::CheckPathFile(std::string& path_file, bool is_dir, bool check_read, bool check_write) throw(Exception)
@@ -79,6 +98,16 @@ void STPath::Init(std::string path, std::string sub_path) throw(Exception)
 
 			m_sPath.insert(sub_path);
 		}
+	}
+}
+
+void STPath::InitCopy(const std::set<std::string>& set_path)
+{
+	m_sPath.clear();
+
+	for ( std::set<std::string>::const_iterator c_it = set_path.begin(); c_it != set_path.end(); ++c_it )
+	{
+		m_sPath.insert(*c_it);
 	}
 }
 

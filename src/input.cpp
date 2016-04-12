@@ -435,6 +435,11 @@ void InputPath::Init() throw(Exception)
 
 bool InputPath::GetPacket(Packet* p) throw(Exception)
 {
+	if ( m_qFullName.empty() && GetFileQueue() == 0 )
+	{
+		return false;
+	}
+
 	std::string file_name;
 
 	while ( GetFile(file_name) )
@@ -461,6 +466,9 @@ bool InputPath::GetPacket(Packet* p) throw(Exception)
 		if ( 0 == p->m_nZipSize )
 		{
 			Log::Instance()->Output("<WARNING> Get file \"%s\" packet size = 0!", file_name.c_str());
+
+			// Remove the (size = 0 ) file_name from queue
+			m_qFullName.pop_front();
 			continue;		// Next file
 		}
 
@@ -531,58 +539,58 @@ void InputPath::Close()
 	}
 }
 
+size_t InputPath::GetFileQueue()
+{
+	const size_t QUEUE_SIZE = m_qFullName.size();
+
+	std::map<std::string, Dir*>::iterator it;
+	for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
+	{
+		it->second->Open();
+	}
+
+	bool bNoFile = false;
+	int	counter = 0;
+	std::string full_name;
+
+	while ( !bNoFile && counter < m_packets )
+	{
+		bNoFile = true;
+
+		for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
+		{
+			Dir* pDir = it->second;
+			if ( !pDir->IsEmpty() && pDir->GetFullName(full_name) )
+			{
+				m_qFullName.push_back(full_name);
+
+				if ( bNoFile )
+				{
+					bNoFile = false;
+				}
+
+				// The MAX size = m_packets
+				if ( ++counter >= m_packets )
+				{
+					break;
+				}
+			}
+		}
+	}
+	
+	for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
+	{
+		it->second->Close();
+	}
+
+	return (m_qFullName.size() - QUEUE_SIZE);
+}
+
 bool InputPath::GetFile(std::string& file_name)
 {
 	if ( m_qFullName.empty() )
 	{
-		std::map<std::string, Dir*>::iterator it;
-		for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
-		{
-			it->second->Open();
-		}
-
-		bool bNoFile = false;
-		int	counter = 0;
-		std::string full_name;
-
-		while ( !bNoFile && counter < m_packets )
-		{
-			bNoFile = true;
-
-			for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
-			{
-				Dir* pDir = it->second;
-				if ( !pDir->IsEmpty() && pDir->GetFullName(full_name) )
-				{
-					m_qFullName.push_back(full_name);
-
-					if ( bNoFile )
-					{
-						bNoFile = false;
-					}
-
-					if ( ++counter >= m_packets )
-					{
-						break;
-					}
-				}
-			}
-		}
-		
-		for ( it = m_mInputDir.begin(); it != m_mInputDir.end(); ++it )
-		{
-			it->second->Close();
-		}
-
-		if ( m_qFullName.size() > 0 )
-		{
-			file_name = m_qFullName.front();
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return false;
 	}
 	else
 	{

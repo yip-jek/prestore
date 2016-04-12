@@ -131,6 +131,7 @@ protected:
 
 private:
 	bool GetFile(std::string& file_name);
+	size_t GetFileQueue();
 
 private:
 	std::map<std::string, Dir*>	m_mInputDir;

@@ -13,14 +13,19 @@ class STPath
 {
 public:
 	STPath();
+	STPath(const STPath& stp);
 	~STPath();
 
 public:
+	const STPath& operator = (const STPath& stp);
 	static void CheckPathFile(std::string& path_file, bool is_dir, bool check_read, bool check_write) throw(Exception);
 
 public:
 	void Init(std::string path, std::string sub_path) throw(Exception);
 	std::string GetPath();
+
+private:
+	void InitCopy(const std::set<std::string>& set_path);
 
 private:
 	std::set<std::string>			m_sPath;
