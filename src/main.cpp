@@ -6,7 +6,7 @@
 #include "log.h"
 #include "prestore.h"
 
-const char* g_ver = "PreStore: Version 1.05.0414 released.";
+const char* g_ver = "PreStore: Version 1.06.0414 released.";
 
 int main(int argc, char* argv[])
 {

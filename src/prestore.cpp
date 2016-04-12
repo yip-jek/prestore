@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include "gsignal.h"
 #include "config.h"
 #include "log.h"
@@ -240,48 +241,79 @@ void Prestore::ReleaseInput()
 
 void Prestore::SuspendPacket(Packet* p, long error) throw(Exception)
 {
-	char buf[512] = "";
-	snprintf(buf, sizeof(buf), "%s%d.%d.%d.%s.Z", m_sSuspendPath.c_str(), 
-		p->m_nFileID, p->m_nChannelID1, p->m_nChannelID2, p->m_sBillPeriod);
+	char file_name[128] = "";
+	snprintf(file_name, sizeof(file_name), "%d.%d.%d.%ld.%s.Z", p->m_nFileID, 
+		p->m_nChannelID1, p->m_nChannelID2, error, p->m_sBillPeriod);
 
-	Log::Instance()->Output("Suspend file: %s", buf);
+	Log::Instance()->Output("Suspend file: %swork/%s", m_sSuspendPath.c_str(), file_name);
 
-	WriteFile(buf, p->m_pZipBuf, p->m_nZipSize);
+	WriteFile(m_sSuspendPath, file_name, p->m_pZipBuf, p->m_nZipSize);
 }
 
 void Prestore::DistributePacket(Packet* p) throw(Exception)
 {
-	char buf[512] = "";
-	snprintf(buf, sizeof(buf), "%s%d.%d.%d.%s.Z", m_channelPath.GetChannelPath(p->m_nChannelID1).c_str(), 
-		p->m_nFileID, p->m_nChannelID1, p->m_nChannelID2, p->m_sBillPeriod);
+	char file_name[128] = "";
+	snprintf(file_name, sizeof(file_name), "%d.%d.%d.%s.Z", p->m_nFileID, 
+		p->m_nChannelID1, p->m_nChannelID2, p->m_sBillPeriod);
+
+	std::string channel_path = m_channelPath.GetChannelPath(p->m_nChannelID1);
 
 	if ( p->m_srcFilePath.empty() )
 	{
-		Log::Instance()->Output("Distribute file: [FROM] MQ [TO] %s", buf);
+		Log::Instance()->Output("Distribute file: [FROM] MQ [TO] %swork/%s", channel_path.c_str(), file_name);
 	}
 	else
 	{
-		Log::Instance()->Output("Distribute file: [FROM] %s [TO] %s", p->m_srcFilePath.c_str(), buf);
+		Log::Instance()->Output("Distribute file: [FROM] %s [TO] %swork/%s", p->m_srcFilePath.c_str(), channel_path.c_str(), file_name);
 	}
 
-	WriteFile(buf, p->m_pZipBuf, p->m_nZipSize);
+	WriteFile(channel_path, file_name, p->m_pZipBuf, p->m_nZipSize);
 }
 
-void Prestore::WriteFile(const std::string& file_name, char* pBuf, int buf_size) throw(Exception)
+void Prestore::WriteFile(const std::string& path, const std::string& file_name, char* pBuf, int buf_size) throw(Exception)
 {
-	FILE* fp = fopen(file_name.c_str(), "w");
+	std::string work_file = path + "work/";
+	std::string link_file = path + "commit/";
+
+	TryCreateDir(work_file);
+	TryCreateDir(link_file);
+
+	work_file += file_name;
+
+	FILE* fp = fopen(work_file.c_str(), "w");
 	if ( NULL == fp )
 	{
-		throw Exception(PS_OPEN_FILE_FAIL, "Open file \"%s\" fail! %s [FILE:%s, LINE:%d]", file_name.c_str(), strerror(errno), __FILE__, __LINE__);
+		throw Exception(PS_OPEN_FILE_FAIL, "Open file \"%s\" fail! %s [FILE:%s, LINE:%d]", work_file.c_str(), strerror(errno), __FILE__, __LINE__);
 	}
 
 	if ( fwrite(pBuf, buf_size, 1, fp) != 1 )
 	{
 		fclose(fp);
-		unlink(file_name.c_str());
-		throw Exception(PS_WRITE_FILE_FAIL, "Write file \"%s\" fail! %s [FILE:%s, LINE:%d]", file_name.c_str(), strerror(errno), __FILE__, __LINE__);
+		unlink(work_file.c_str());
+		throw Exception(PS_WRITE_FILE_FAIL, "Write file \"%s\" fail! %s [FILE:%s, LINE:%d]", work_file.c_str(), strerror(errno), __FILE__, __LINE__);
 	}
 
 	fclose(fp);
+
+	link_file += file_name;
+
+	unlink(link_file.c_str());
+	if ( symlink(work_file.c_str(), link_file.c_str()) != 0 )
+	{
+		unlink(work_file.c_str());
+		throw Exception(PS_LINK_FILE_FAIL, "Link file \"%s\" fail! %s [FILE:%s, LINE:%d]", link_file.c_str(), strerror(errno), __FILE__, __LINE__);
+	}
+}
+
+void Prestore::TryCreateDir(const std::string& dir_path) throw(Exception)
+{
+	// Not existed ?
+	if ( access(dir_path.c_str(), F_OK) != 0 )
+	{
+		if ( mkdir(dir_path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) != 0 )
+		{
+			throw Exception(PS_CREATE_DIR_FAIL, "Try to create dir \"%s\" fail! %s [FILE:%s, LINE:%d]", dir_path.c_str(), strerror(errno), __FILE__, __LINE__);
+		}
+	}
 }
 

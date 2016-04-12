@@ -20,6 +20,8 @@
 #define PS_INPUT_INVALID              (3005)
 #define PS_OPEN_FILE_FAIL             (3006)
 #define PS_WRITE_FILE_FAIL            (3007)
+#define PS_LINK_FILE_FAIL             (3008)
+#define PS_CREATE_DIR_FAIL            (3009)
 
 #define CP_PATH_FILE_INVALID          (4001)
 #define CP_CHANNEL_ID_INVALID         (4002)

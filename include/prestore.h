@@ -57,7 +57,8 @@ private:
 	void ReleaseInput();
 	void SuspendPacket(Packet* p, long error) throw(Exception);
 	void DistributePacket(Packet* p) throw(Exception);
-	void WriteFile(const std::string& file_name, char* pBuf, int buf_size) throw(Exception);
+	void WriteFile(const std::string& path, const std::string& file_name, char* pBuf, int buf_size) throw(Exception);
+	void TryCreateDir(const std::string& dir_path) throw(Exception);
 
 private:
 	Config*				m_pCfg;						// The conguration pointer
