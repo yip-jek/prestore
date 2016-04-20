@@ -174,49 +174,53 @@ void Prestore::Run() throw(Exception)
 	{
 		pack.Init();
 
-		if ( m_pInput->GetPacket(&pack) )
+		Input::PACKET_STATE p_state = m_pInput->GetPacket(&pack);
+		if ( p_state != Input::PKS_NO_PACKET )
 		{
-			if ( (size_t)pack.m_nUncomSize < sizeof(PacketHead) )	// Packet size less than packet_head size
+			if ( p_state != Input::PKS_LINK_INVALID )
 			{
-				Log::Instance()->Output("[ERROR] Packet size (%d) < PacketHead size (%d)", pack.m_nUncomSize, sizeof(PacketHead));
-
-				pack.m_nFileID = -time(NULL);
-				strcpy(pack.m_sBillPeriod, "0");
-
-				SuspendPacket(&pack, SUS_LESS_PACKET_HEAD);
-			}
-			else
-			{
-				pHead = (PacketHead*)pack.m_pUncomBuf;
-
-				if ( pack.m_srcFilePath.empty() )
+				if ( (size_t)pack.m_nUncomSize < sizeof(PacketHead) )	// Packet size less than packet_head size
 				{
-					Log::Instance()->Output("[GET MQ] type_id:%d, type_ex:%s file_id:%d, channel_id1:%d, channel_id2:%d", 
-						pHead->type_id, pHead->type_extend, pHead->file_id, pHead->channel_id1, pHead->channel_id2);
+					Log::Instance()->Output("[ERROR] Packet size (%d) < PacketHead size (%d)", pack.m_nUncomSize, sizeof(PacketHead));
+
+					pack.m_nFileID = -time(NULL);
+					strcpy(pack.m_sBillPeriod, "0");
+
+					SuspendPacket(&pack, SUS_LESS_PACKET_HEAD);
 				}
 				else
 				{
-					Log::Instance()->Output("[GET FILE] type_id:%d, type_ex:%s file_id:%d, channel_id1:%d, channel_id2:%d", 
-						pHead->type_id, pHead->type_extend, pHead->file_id, pHead->channel_id1, pHead->channel_id2);
-				}
+					pHead = (PacketHead*)pack.m_pUncomBuf;
 
-				pack.m_nFileID     = pHead->file_id;
-				pack.m_nChannelID1 = pHead->channel_id1;
-				pack.m_nChannelID2 = pHead->channel_id2;
-				strcpy(pack.m_sBillPeriod, pHead->bill_period);
+					if ( pack.m_srcFilePath.empty() )
+					{
+						Log::Instance()->Output("[GET MQ] type_id:%d, type_ex:%s file_id:%d, channel_id1:%d, channel_id2:%d", 
+								pHead->type_id, pHead->type_extend, pHead->file_id, pHead->channel_id1, pHead->channel_id2);
+					}
+					else
+					{
+						Log::Instance()->Output("[GET FILE] type_id:%d, type_ex:%s file_id:%d, channel_id1:%d, channel_id2:%d", 
+								pHead->type_id, pHead->type_extend, pHead->file_id, pHead->channel_id1, pHead->channel_id2);
+					}
 
-				if ( pHead->type_id > 0 && pHead->type_id < m_nMaxTypeID )
-				{
-					DistributePacket(&pack);
-				}
-				else
-				{
-					Log::Instance()->Output("[ERROR] Packet type_id (%d) is out of range!", pHead->type_id);
-					SuspendPacket(&pack, SUS_INVALID_TYPE_ID);
+					pack.m_nFileID     = pHead->file_id;
+					pack.m_nChannelID1 = pHead->channel_id1;
+					pack.m_nChannelID2 = pHead->channel_id2;
+					strcpy(pack.m_sBillPeriod, pHead->bill_period);
+
+					if ( pHead->type_id > 0 && pHead->type_id < m_nMaxTypeID )
+					{
+						DistributePacket(&pack);
+					}
+					else
+					{
+						Log::Instance()->Output("[ERROR] Packet type_id (%d) is out of range!", pHead->type_id);
+						SuspendPacket(&pack, SUS_INVALID_TYPE_ID);
+					}
 				}
 			}
 
-			m_pInput->DelSrcPacket();
+			m_pInput->DelSrcPacket(p_state);
 
 			if ( ++counter < m_nPackets )
 			{

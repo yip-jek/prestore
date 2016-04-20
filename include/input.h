@@ -17,10 +17,17 @@ public:
 	Input(const std::string& paths, int packet);
 	virtual ~Input();
 
+	enum PACKET_STATE
+	{
+		PKS_NO_PACKET    = -1,		// No packet
+		PKS_LINK_INVALID = 0,		// (TYPE:FILE) Packet link-file invalid: work-file not existed!
+		PKS_GET_ONE_PACK = 1		// Get one packet
+	};
+
 public:
 	virtual void Init() throw(Exception) = 0;
-	virtual bool GetPacket(Packet* p) throw(Exception) = 0;
-	virtual void DelSrcPacket() = 0;
+	virtual PACKET_STATE GetPacket(Packet* p) throw(Exception) = 0;
+	virtual void DelSrcPacket(PACKET_STATE& p_state) = 0;
 
 protected:
 	virtual void Close() = 0;
@@ -56,8 +63,8 @@ public:
 
 public:
 	virtual void Init() throw(Exception);
-	virtual bool GetPacket(Packet* p) throw(Exception);
-	virtual void DelSrcPacket();
+	virtual PACKET_STATE GetPacket(Packet* p) throw(Exception);
+	virtual void DelSrcPacket(PACKET_STATE& p_state);
 
 protected:
 	virtual void Close();
@@ -123,8 +130,8 @@ public:
 
 public:
 	virtual void Init() throw(Exception);
-	virtual bool GetPacket(Packet* p) throw(Exception);
-	virtual void DelSrcPacket();
+	virtual PACKET_STATE GetPacket(Packet* p) throw(Exception);
+	virtual void DelSrcPacket(PACKET_STATE& p_state);
 
 protected:
 	virtual void Close();

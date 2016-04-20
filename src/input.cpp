@@ -119,11 +119,11 @@ void InputMQ::Init() throw(Exception)
 	}
 }
 
-bool InputMQ::GetPacket(Packet* p) throw(Exception)
+Input::PACKET_STATE InputMQ::GetPacket(Packet* p) throw(Exception)
 {
 	if ( m_sMQQueue.empty() )
 	{
-		return false;
+		return PKS_NO_PACKET;
 	}
 
 	NextIter(m_sIter);
@@ -136,7 +136,7 @@ bool InputMQ::GetPacket(Packet* p) throw(Exception)
 			if ( GetMQMsg(*it, p) )
 			{
 				m_sIter = it;
-				return true;
+				return PKS_GET_ONE_PACK;
 			}
 		}
 		catch ( TException& t_ex )
@@ -149,10 +149,10 @@ bool InputMQ::GetPacket(Packet* p) throw(Exception)
 		NextIter(it);
 	} while ( it != m_sIter );
 
-	return false;
+	return PKS_NO_PACKET;
 }
 
-void InputMQ::DelSrcPacket()
+void InputMQ::DelSrcPacket(PACKET_STATE& p_state)
 {
 	if ( m_sIter != m_sMQQueue.end() )
 	{
@@ -433,11 +433,11 @@ void InputPath::Init() throw(Exception)
 	}
 }
 
-bool InputPath::GetPacket(Packet* p) throw(Exception)
+Input::PACKET_STATE InputPath::GetPacket(Packet* p) throw(Exception)
 {
 	if ( m_qFullName.empty() && GetFileQueue() == 0 )
 	{
-		return false;
+		return PKS_NO_PACKET;
 	}
 
 	std::string file_name;
@@ -445,8 +445,12 @@ bool InputPath::GetPacket(Packet* p) throw(Exception)
 	while ( GetFile(file_name) )
 	{
 		char buf[512] = "";
-		if ( readlink(file_name.c_str(), buf, sizeof(buf)) > 0 )
+		std::string link_file;
+
+		bool is_link = (readlink(file_name.c_str(), buf, sizeof(buf)) > 0);
+		if ( is_link )
 		{
+			link_file = file_name;
 			file_name = buf;
 		}
 
@@ -455,7 +459,15 @@ bool InputPath::GetPacket(Packet* p) throw(Exception)
 		AutoFile af;
 		if ( !af.Open(file_name) )
 		{
-			throw Exception(INPUT_OPEN_FILE_FAIL, "Open file \"%s\" fail! %s [FILE:%s, LINE:%d]", file_name.c_str(), strerror(errno), __FILE__, __LINE__);
+			if ( is_link && (ENOENT == errno) )
+			{
+				Log::Instance()->Output("<WARNING> Broken symbolic link \"%s\" to \"%s\"", link_file.c_str(), file_name.c_str());
+				return PKS_LINK_INVALID;
+			}
+			else
+			{
+				throw Exception(INPUT_OPEN_FILE_FAIL, "Open file \"%s\" fail! %s [FILE:%s, LINE:%d]", file_name.c_str(), strerror(errno), __FILE__, __LINE__);
+			}
 		}
 
 		if ( !af.GetSize(file_name, p->m_nZipSize) )
@@ -484,36 +496,48 @@ bool InputPath::GetPacket(Packet* p) throw(Exception)
 		}
 		p->m_pUncomBuf[p->m_nUncomSize] = '\0';
 
-		return true;
+		return PKS_GET_ONE_PACK;
 	}
 
-	return false;
+	return PKS_NO_PACKET;
 }
 
-void InputPath::DelSrcPacket()
+void InputPath::DelSrcPacket(PACKET_STATE& p_state)
 {
 	if ( !m_qFullName.empty() )
 	{
 		std::string full_name = m_qFullName.front();
 
-		char buf[512] = "";
-		if ( readlink(full_name.c_str(), buf, sizeof(buf)) > 0 )
+		if ( PKS_LINK_INVALID == p_state )
 		{
+			Log::Instance()->Output("Remove broken symbolic link \"%s\"", full_name.c_str());
+
 			if ( unlink(full_name.c_str()) < 0 )
 			{
 				throw Exception(INPUT_DELETE_FAIL, "Delete link-file \"%s\" fail! [FILE:%s, LINE:%d]", full_name.c_str(), __FILE__, __LINE__);
 			}
-
-			if ( unlink(buf) < 0 )
-			{
-				throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail! [FILE:%s, LINE:%d]", buf, __FILE__, __LINE__);
-			}
 		}
 		else
 		{
-			if ( unlink(full_name.c_str()) < 0 )
+			char buf[512] = "";
+			if ( readlink(full_name.c_str(), buf, sizeof(buf)) > 0 )
 			{
-				throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail! [FILE:%s, LINE:%d]", full_name.c_str(), __FILE__, __LINE__);
+				if ( unlink(full_name.c_str()) < 0 )
+				{
+					throw Exception(INPUT_DELETE_FAIL, "Delete link-file \"%s\" fail! [FILE:%s, LINE:%d]", full_name.c_str(), __FILE__, __LINE__);
+				}
+
+				if ( unlink(buf) < 0 )
+				{
+					throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail! [FILE:%s, LINE:%d]", buf, __FILE__, __LINE__);
+				}
+			}
+			else
+			{
+				if ( unlink(full_name.c_str()) < 0 )
+				{
+					throw Exception(INPUT_DELETE_FAIL, "Delete file \"%s\" fail! [FILE:%s, LINE:%d]", full_name.c_str(), __FILE__, __LINE__);
+				}
 			}
 		}
 
