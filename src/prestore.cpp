@@ -79,19 +79,48 @@ void Packet::UncomBufZero()
 
 
 //////////////////////////////////////////////////////////////////////////////////////
-Prestore::Prestore(Config& cfg)
+AutoTask::AutoTask(Task* p_new_task /*= NULL*/)
+:m_pTask(p_new_task)
+{
+}
+
+AutoTask::~AutoTask()
+{
+	Release();
+}
+
+void AutoTask::Reset(Task* p_new_task)
+{
+	Release();
+
+	m_pTask = p_new_task;
+}
+
+void AutoTask::Release()
+{
+	if ( m_pTask != NULL )
+	{
+		delete m_pTask;
+		m_pTask = NULL;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+Prestore::Prestore(Config& cfg, AutoTask& auto_task)
 :m_pCfg(&cfg)
 ,m_nWaitSecs(0)
 ,m_nPackets(0)
 ,m_nMaxTypeID(0)
 ,m_pInput(NULL)
 ,m_channelPath(&cfg)
+,m_pAutoTask(&auto_task)
 {
 }
 
 Prestore::~Prestore()
 {
-	ReleaseInput();
+	Release();
 }
 
 void Prestore::Init() throw(Exception)
@@ -130,8 +159,8 @@ void Prestore::Init() throw(Exception)
 
 	std::string input_paths = m_pCfg->GetCfgValue("INPUT", "INPUT_PATH");
 
-	ReleaseInput();
-
+	Release();
+	
 	int type = (int)m_pCfg->GetCfgLongVal("INPUT", "INPUT_TYPE");
 	if ( 1 == type )
 	{
@@ -170,7 +199,7 @@ void Prestore::Run() throw(Exception)
 	Packet pack;
 	PacketHead* pHead;
 
-	while ( GSignal::IsRunning() )
+	while ( Running() )
 	{
 		pack.Init();
 
@@ -234,7 +263,7 @@ void Prestore::Run() throw(Exception)
 	}
 }
 
-void Prestore::ReleaseInput()
+void Prestore::Release()
 {
 	if ( m_pInput != NULL )
 	{
@@ -318,6 +347,47 @@ void Prestore::TryCreateDir(const std::string& dir_path) throw(Exception)
 		{
 			throw Exception(PS_CREATE_DIR_FAIL, "Try to create dir \"%s\" fail! %s [FILE:%s, LINE:%d]", dir_path.c_str(), strerror(errno), __FILE__, __LINE__);
 		}
+	}
+}
+
+bool Prestore::Running()
+{
+	Task* pTask = m_pAutoTask->Get();
+	if ( pTask != NULL )	// Monitor
+	{
+		char param[2048] = "";
+
+		int result = pTask->t_get_task(param, sizeof(param));
+		if ( 2 == result )
+		{
+			Log::Instance()->Output("Get exit task, ready to quit ...");
+
+			if ( pTask->t_set_task_result(true) != 0 )
+			{
+				Log::Instance()->Output("<WARNING> t_set_task_result error: %s", pTask->t_error());
+			}
+
+			if ( pTask->t_set_exit(true) != 0 )
+			{
+				Log::Instance()->Output("<WARNING> t_set_exit error: %s", pTask->t_error());
+			}
+
+			return false;
+		}
+		else if ( result < 0 )
+		{
+			Log::Instance()->Output("<WARNING> t_get_task error: %s", pTask->t_error());
+		}
+		else if ( result > 0 && pTask->t_set_task_result(true) != 0 )
+		{
+			Log::Instance()->Output("<WARNING> t_set_task_result error: %s", pTask->t_error());
+		}
+
+		return true;
+	}
+	else
+	{
+		return GSignal::IsRunning();
 	}
 }
 
