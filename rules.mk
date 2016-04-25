@@ -12,6 +12,8 @@ SHARE_LIB  = -L$(SHARE_DIR)/lib64/ora_static -laibase1
 LIBMM_INCL = -I$(LIBMM_DIR)/include
 LIBMM_LIB  = -L$(LIBMM_DIR)/lib64 -laibase2
 
+ORA_LIB    = -L$(ORACLE_HOME)/lib -lclntsh
+
 ############################################################################
 ifeq ($(shell uname -s), AIX) # OS-AIX
 CPP = xlC
@@ -25,13 +27,13 @@ NBASE_INCL = -I$(SHARE_DIR)/include/nbase
 NBASE_LIB  = -L$(SHARE_DIR)/lib64/ora_static -lnbase
 
 INCLS = $(APP_INCL) $(MQ_INCL) $(SHARE_INCL) $(NBASE_INCL) $(LIBMM_INCL)
-LIBS  = $(MQ_LIB) $(SHARE_LIB) $(NBASE_LIB) $(LIBMM_LIB)
+LIBS  = $(MQ_LIB) $(SHARE_LIB) $(NBASE_LIB) $(LIBMM_LIB) $(ORA_LIB)
 else	# OS-Linux
 CPP = g++
 CPP_FLAGS = -g -m64 -Wall -O2 -DLINUX
 
 INCLS = $(APP_INCL) $(SHARE_INCL) $(LIBMM_INCL)
-LIBS  = $(SHARE_LIB) $(LIBMM_LIB)
+LIBS  = $(SHARE_LIB) $(LIBMM_LIB) $(ORA_LIB)
 endif
 
 ############################################################################
